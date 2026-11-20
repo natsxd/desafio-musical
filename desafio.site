@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desafio Musical</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.10.3/babel.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-bootstrap@next/dist/react-bootstrap.min.js" crossorigin></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" integrity="sha256-2TnSHycBDAm2wpZmgdi0z81kykGPJAkiUY+Wf97RbvY=" crossorigin="anonymous">
+  <style>
+    
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react,stage-3">
+    const initialNumberOfTeams = 0
+    const initialTeams = []
+    const initialNewTeam = {
+      teamMembers: [],
+      score: 0
+    }
+
+    const getYoutubeVideoId = (url) => {
+      var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/
+      var match = url.match(regExp)
+      return (match&&match[7].length==11)? match[7] : false
+    }
+    const formatYoutubeUrl = (videoId, startTime) => `http://www.youtube.com/embed/${videoId}?start=${startTime}`
+
+    const saveDataToStorage = (data) => {
+      window.localStorage.setItem('data', JSON.stringify(data))
+    }
+
+    const loadDataFromStorage = () => {
+      const data = window.localStorage.getItem('data')
+      if (data) {
+        return JSON.parse(data)
+      }
+      return {
+        numberOfTeams: initialNumberOfTeams,
+        teams: initialTeams
+      }
+    }
+
+    const VideoLinkForm = ({ setVideoSrc }) => {
+      const [link, setLink] = React.useState("")
+      const [time, setTime] = React.useState("")
+
+      return (
+        <>
+          <ReactBootstrap.Row bsPrefix="row mb-3">
+            <ReactBootstrap.Form.Label htmlFor="videoSrcInput">Link do vídeo (Youtube)</ReactBootstrap.Form.Label>
+            <ReactBootstrap.Form.Control
+              type="text"
+              id="videoSrcInput"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </ReactBootstrap.Row>
+          <ReactBootstrap.Row bsPrefix="row mb-3">
+            <ReactBootstrap.Form.Label htmlFor="timeInput">Início do vídeo (em segundos)</ReactBootstrap.Form.Label>
+            <ReactBootstrap.Form.Control
+              type="number"
+              id="timeInput"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </ReactBootstrap.Row>
+          <ReactBootstrap.Row>
+            <ReactBootstrap.Button variant="primary" onClick={() => {
+              const videoId = getYoutubeVideoId(link)
+              const videoSrc = videoId ? formatYoutubeUrl(videoId, time || 0) : ''
+              setVideoSrc(videoSrc)
+            }}>
+              Abrir vídeo
+            </ReactBootstrap.Button>
+          </ReactBootstrap.Row>
+        </>
+      )
+    }
+  
+    const VideoSection = () => {
+      const [videoSrc, setVideoSrc] = React.useState("")
+      return (
+        <div className="p-3">
+          <ReactBootstrap.Row>
+            <VideoLinkForm setVideoSrc={setVideoSrc} />
+          </ReactBootstrap.Row>
+          <ReactBootstrap.Row bsPrefix="row mt-3">
+            <iframe
+              allowFullScreen=""
+              frameBorder="0"
+              style={{
+                height: '60vh'
+              }}
+              src={videoSrc}
+            ></iframe>
+          </ReactBootstrap.Row>
+        </div>
+      )
+    }
+
+    const ScoreChangeButton = ({ value, variant, onClick }) => (
+      <ReactBootstrap.Button bsPrefix={`btn btn-outline-${variant} ml-1`} onClick={() => onClick(parseInt(value))}>
+        {value}
+      </ReactBootstrap.Button>
+    )
+
+    const TeamContainer = ({ id, teamMembers, score, onMemberDelete, onMemberAdd, onScoreChange }) => {
+      const addSubtractValue = (value) => {
+        onScoreChange(score + value)
+      }
+      
+      return (
+        <ReactBootstrap.Row bsPrefix="row mb-5">
+          <ReactBootstrap.Row bsPrefix="row gx-0">
+            <ReactBootstrap.Col>
+              <h4>Time {id + 1}</h4>
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col>
+              <h4>{score} pontos</h4>
+            </ReactBootstrap.Col>
+          </ReactBootstrap.Row>
+          <ReactBootstrap.Row bsPrefix="row gx-0 mb-3">
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="-20" variant="danger" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="-10" variant="danger" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="-5" variant="danger" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="+5" variant="success" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="+10" variant="success" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+            <ReactBootstrap.Col bsPrefix="col d-grid gap-2 gx-1">
+              <ScoreChangeButton value="+20" variant="success" onClick={addSubtractValue} />
+            </ReactBootstrap.Col>
+          </ReactBootstrap.Row>
+          <ReactBootstrap.Form.Label htmlFor={`addMembers_${id}`}>Adicionar membros (pressione enter após digitar o nome):</ReactBootstrap.Form.Label>
+          <ReactBootstrap.Form.Control
+            id={`addMembers_${id}`}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                onMemberAdd(e.target.value)
+                e.target.value = ''
+              }
+            }}
+          />
+          <ReactBootstrap.Row bsPrefix="row gx-0">
+            {teamMembers.map((memberName, memberId) => (
+              <ReactBootstrap.Col className="col-sm-4 d-grid gap-2 mt-1 gx-1" key={`${id}_${memberId}`}>
+                <ReactBootstrap.Button variant="light" onClick={() => onMemberDelete(memberId)}>
+                  {memberName} ✖
+                </ReactBootstrap.Button>
+              </ReactBootstrap.Col>
+            ))}
+          </ReactBootstrap.Row>
+        </ReactBootstrap.Row>
+      )
+    }
+
+    const TeamsSection = () => {
+      const { numberOfTeams: n, teams: t } = loadDataFromStorage()
+      const [numberOfTeams, setNumberOfTeams] = React.useState(n)
+      const [teams, setTeams] = React.useState(t)
+
+      const changeNumberOfTeams = (n) => {
+        if (numberOfTeams < n) {
+          for (let i = numberOfTeams; i < n; i++) {
+            if (!teams[i]) {
+              teams[i] = initialNewTeam
+            }
+          }
+        }
+
+        setNumberOfTeams(n)
+        saveDataToStorage({ numberOfTeams: n, teams })
+      }
+
+      const eraseAllData = () => {
+        if (window.confirm('Você tem certeza de que deseja apagar todos os times, membros e pontos?')) {
+          setNumberOfTeams(initialNumberOfTeams)
+          setTeams(initialTeams)
+          saveDataToStorage({
+            numberOfTeams: initialNumberOfTeams,
+            teams: initialTeams
+          })
+        }
+      }
+
+      return (
+        <div className="p-3">
+          <ReactBootstrap.Row bsPrefix="row mb-5">
+            <ReactBootstrap.Form.Label htmlFor="numberOfTeamsInput">Número de times</ReactBootstrap.Form.Label>
+            <ReactBootstrap.Form.Control
+              type="number"
+              id="numberOfTeamsInput"
+              value={numberOfTeams}
+              onChange={(e) => changeNumberOfTeams(e.target.value)}
+            />
+          </ReactBootstrap.Row>
+          {numberOfTeams > 0 && teams.slice(0, numberOfTeams).map(({ teamMembers, score }, teamId) => (
+            <TeamContainer
+              key={teamId}
+              id={teamId}
+              teamMembers={teamMembers}
+              score={score}
+              onMemberDelete={(memberId) => {
+                const newTeamsArray = [...teams]
+                const newTeamMembers = newTeamsArray[teamId].teamMembers
+                newTeamMembers.splice(memberId, 1)
+                newTeamsArray[teamId] = {
+                  ...newTeamsArray[teamId],
+                  teamMembers: newTeamMembers
+                }
+                setTeams(newTeamsArray)
+                saveDataToStorage({ numberOfTeams, teams: newTeamsArray })
+              }}
+              onMemberAdd={(newMemberName) => {
+                const newTeamsArray = [...teams]
+                newTeamsArray[teamId] = {
+                  ...newTeamsArray[teamId],
+                  teamMembers: [...newTeamsArray[teamId].teamMembers, newMemberName]
+                }
+                setTeams(newTeamsArray)
+                saveDataToStorage({ numberOfTeams, teams: newTeamsArray })
+              }}
+              onScoreChange={(newScore) => {
+                const newTeamsArray = [...teams]
+                newTeamsArray[teamId] = {
+                  ...newTeamsArray[teamId],
+                  score: newScore
+                }
+                setTeams(newTeamsArray)
+                saveDataToStorage({ numberOfTeams, teams: newTeamsArray })
+              }}
+            />
+          ))}
+          <ReactBootstrap.Row bsPrefix="row d-grid gap-2 mt-5">
+            <ReactBootstrap.Button bsPrefix="btn btn-outline-danger" onClick={eraseAllData}>
+              Apagar todos os times, membros e pontos
+            </ReactBootstrap.Button>
+          </ReactBootstrap.Row>
+        </div>
+      )
+    }
+  
+    const App = () => (
+      <ReactBootstrap.Container bsPrefix="container mt-5 mb-5">
+        <ReactBootstrap.Row>
+          <ReactBootstrap.Col>
+            <TeamsSection />
+          </ReactBootstrap.Col>
+          <ReactBootstrap.Col>
+            <VideoSection />
+          </ReactBootstrap.Col>
+        </ReactBootstrap.Row>
+      </ReactBootstrap.Container>
+    )
+    const root = ReactDOM.createRoot(document.getElementById("root"))
+    root.render(<App />)
+  </script>
+</body>
+
+</html>
