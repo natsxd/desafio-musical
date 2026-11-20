@@ -257,6 +257,8 @@
     .player-meta .video-title { flex: 1 1 200px; min-width: 0; font-size: var(--t-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .start-field { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); color: var(--muted); }
     .start-field .input { width: 84px; }
+    .own-start { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); color: var(--muted); }
+    .own-start strong { color: var(--text); }
 
     /* Scoreboard */
     .score-list { display: grid; gap: var(--s2); padding: var(--s3); }
@@ -401,7 +403,7 @@
       teams: [],
       history: [],
       currentSongId: null,
-      settings: { apiKey: '', lyrics: false }
+      settings: { apiKey: '', lyrics: false, defaultStart: 60 }
     })
 
     // ============================================================
@@ -729,6 +731,8 @@
       const playerRef = useRef(null)
       const readyRef = useRef(false)
       const pendingRef = useRef(null)
+      const startRef = useRef(0)
+      const checkRef = useRef(false)
       const cbRef = useRef({})
       cbRef.current = { onStateChange, onError }
 
@@ -736,6 +740,8 @@
         const p = playerRef.current
         if (!p) return
         if (!v) { try { p.stopVideo() } catch (e) {} return }
+        startRef.current = v.start || 0
+        checkRef.current = true
         const opts = { videoId: v.videoId, startSeconds: v.start || 0 }
         if (v.autoplay) p.loadVideoById(opts)
         else p.cueVideoById(opts)
@@ -757,7 +763,15 @@
                 readyRef.current = true
                 if (pendingRef.current) apply(pendingRef.current)
               },
-              onStateChange: (e) => cbRef.current.onStateChange && cbRef.current.onStateChange(e.data),
+              onStateChange: (e) => {
+                // Vídeo mais curto que o início escolhido: toca do começo
+                if (e.data === 1 && checkRef.current) {
+                  checkRef.current = false
+                  const dur = e.target.getDuration()
+                  if (dur > 0 && startRef.current > 0 && startRef.current >= dur - 5) e.target.seekTo(0, true)
+                }
+                cbRef.current.onStateChange && cbRef.current.onStateChange(e.data)
+              },
               onError: (e) => cbRef.current.onError && cbRef.current.onError(e.data)
             }
           })
@@ -1027,7 +1041,9 @@
       const [query, setQuery] = useState(baseQuery(song))
       const [search, setSearch] = useState({ status: 'idle', results: [] })
       const [showResults, setShowResults] = useState(true)
-      const [video, setVideo] = useState(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: song.start, nonce: 0 } : null)
+      const defaultStart = data.settings.defaultStart ?? 60
+      const startFor = (s) => (s && s.start > 0 ? s.start : defaultStart)
+      const [video, setVideo] = useState(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: startFor(song), nonce: 0 } : null)
       const [freeStart, setFreeStart] = useState(0)
       const [playing, setPlaying] = useState(false)
       const [playerError, setPlayerError] = useState(null)
@@ -1042,11 +1058,13 @@
         setShowResults(true)
         setPlayerError(null)
         setFreeStart(0)
-        setVideo(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: song.start, nonce: Date.now(), autoplay: false } : null)
+        setVideo(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: startFor(song), nonce: Date.now(), autoplay: false } : null)
       }, [data.currentSongId])
 
       const fullQuery = (query.trim() + (lyrics && !looksLikeYouTubeUrl(query) ? ' lyrics' : '')).trim()
-      const start = song ? song.start || 0 : freeStart
+      // Início próprio da música (se marcado) ou o início padrão, que vale para todos os vídeos
+      const ownStart = song ? song.start || 0 : freeStart
+      const start = ownStart > 0 ? ownStart : defaultStart
 
       const runSearch = async () => {
         const q = query.trim()
@@ -1079,16 +1097,33 @@
         if (IS_FILE) openInWindow(r.videoId, start)
       }
 
-      const setStart = (value) => {
+      // Vídeo carregado e ainda parado: recarrega já no novo início
+      const recueIfIdle = (newStart) => {
+        if (video && !playing) setVideo({ ...video, start: newStart, nonce: Date.now(), autoplay: false })
+      }
+
+      const setDefaultStart = (value) => {
         const v = Math.max(0, parseTime(value))
+        if (v === defaultStart) return
+        update(d => { d.settings.defaultStart = v })
+        if (ownStart === 0) recueIfIdle(v)
+        toast(`Os vídeos agora começam em ${formatTime(v)}`)
+      }
+
+      const setOwnStart = (v) => {
         if (song) update(d => { const s = d.songs.find(x => x.id === song.id); if (s) s.start = v })
         else setFreeStart(v)
       }
 
       const useCurrentTime = () => {
         const t = Math.floor(playerRef.current ? playerRef.current.currentTime() : 0)
-        setStart(t)
-        toast(`Início marcado em ${formatTime(t)}`)
+        setOwnStart(t)
+        toast(`Esta música vai começar em ${formatTime(t)}`)
+      }
+
+      const clearOwnStart = () => {
+        setOwnStart(0)
+        recueIfIdle(defaultStart)
       }
 
       const togglePlay = () => {
@@ -1221,19 +1256,26 @@
               </button>
               <button className="btn" onClick={restart} disabled={!video} title="Volta para o segundo de início">{I.restart}Do início</button>
               <span className="start-field">
-                <label htmlFor="start-at">Começar em</label>
+                <label htmlFor="start-at">Começar todos os vídeos em</label>
                 <input
                   id="start-at"
                   className="input num"
-                  key={`${data.currentSongId}-${start}`}
-                  defaultValue={formatTime(start)}
-                  onBlur={(e) => setStart(e.target.value)}
+                  key={`default-${defaultStart}`}
+                  defaultValue={formatTime(defaultStart)}
+                  onBlur={(e) => setDefaultStart(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
                   aria-describedby="start-hint"
                 />
-                <span id="start-hint" className="sr-only">Em segundos ou minutos:segundos, por exemplo 1:05</span>
+                <span id="start-hint" className="sr-only">Em segundos ou minutos:segundos, por exemplo 90 ou 1:30. Vale para todos os vídeos até ser alterado.</span>
               </span>
-              <button className="btn btn-ghost" onClick={useCurrentTime} disabled={!video || IS_FILE}>{I.flag}Marcar tempo atual</button>
+              {ownStart > 0 ? (
+                <span className="own-start">
+                  {song ? 'Esta música' : 'Este vídeo'} começa em <strong className="num">{formatTime(ownStart)}</strong>
+                  <button className="btn btn-ghost btn-sm" onClick={clearOwnStart}>Usar o padrão</button>
+                </span>
+              ) : (
+                <button className="btn btn-ghost" onClick={useCurrentTime} disabled={!video || IS_FILE} title="Faz só esta música começar no ponto em que o vídeo está agora">{I.flag}Marcar início só desta música</button>
+              )}
               {video && <span className="video-title" title={video.title}>{video.title}</span>}
               {video && (
                 <a className="btn btn-ghost btn-icon" href={youtubeWatchUrl(video.videoId, start)} target="_blank" rel="noopener noreferrer" title="Abrir no YouTube" aria-label="Abrir no YouTube">{I.external}</a>
@@ -1835,7 +1877,7 @@
 
       const exportBackup = () => {
         const { settings, ...rest } = data
-        const payload = { app: 'desafio-musical', version: 2, exportedAt: new Date().toISOString(), ...rest, settings: { lyrics: settings.lyrics } }
+        const payload = { app: 'desafio-musical', version: 2, exportedAt: new Date().toISOString(), ...rest, settings: { lyrics: settings.lyrics, defaultStart: settings.defaultStart } }
         downloadFile(JSON.stringify(payload, null, 2), `desafio-musical-backup-${today()}.json`, 'application/json')
       }
 
@@ -1848,7 +1890,7 @@
           replaceData({
             ...emptyData(),
             songs: json.songs, participants: json.participants || [], teams: json.teams, history: json.history || [], currentSongId: json.currentSongId || null,
-            settings: { apiKey: data.settings.apiKey, lyrics: !!(json.settings && json.settings.lyrics) }
+            settings: { apiKey: data.settings.apiKey, lyrics: !!(json.settings && json.settings.lyrics), defaultStart: json.settings && Number.isFinite(json.settings.defaultStart) ? json.settings.defaultStart : 60 }
           })
           toast('Backup restaurado')
         } catch (err) {
