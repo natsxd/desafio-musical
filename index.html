@@ -641,13 +641,20 @@
     // ============================================================
     const apiErrorMessage = (json) => {
       const err = json && json.error
-      const reason = err && err.errors && err.errors[0] && err.errors[0].reason
-      const detail = err && err.details && err.details[0] && err.details[0].reason
-      if (reason === 'quotaExceeded') return 'A cota diária da chave acabou. Ela renova por volta das 5h (horário de Brasília). Até lá, use "Abrir busca no YouTube".'
-      if (detail === 'API_KEY_INVALID' || reason === 'keyInvalid' || (err && err.status === 'INVALID_ARGUMENT' && /API key/i.test(err.message))) return 'A chave da API é inválida. Confira em Ajustes.'
-      if (detail === 'API_KEY_HTTP_REFERRER_BLOCKED') return 'Esta chave não aceita pedidos deste endereço. Revise as restrições de site da chave no Google Cloud.'
-      if (reason === 'accessNotConfigured' || detail === 'SERVICE_DISABLED') return 'A YouTube Data API v3 não está ativada no projeto dessa chave.'
-      return (err && err.message) ? `O YouTube recusou a busca: ${err.message}` : 'O YouTube recusou a busca.'
+      // O Google espalha o motivo entre errors[].reason e details[].reason; junta todos
+      const reasons = [
+        ...((err && err.errors) || []).map(e => e.reason),
+        ...((err && err.details) || []).map(d => d.reason)
+      ].filter(Boolean)
+      const has = (...codes) => codes.some(c => reasons.includes(c))
+      const code = reasons.length ? ` (código: ${reasons.join(', ')})` : ''
+      if (has('quotaExceeded')) return 'A cota diária da chave acabou. Ela renova por volta das 5h (horário de Brasília). Até lá, use "Abrir busca no YouTube".'
+      if (has('API_KEY_INVALID', 'keyInvalid') || (err && err.status === 'INVALID_ARGUMENT' && /API key/i.test(err.message))) return 'A chave da API é inválida. Confira em Ajustes.'
+      if (has('API_KEY_HTTP_REFERRER_BLOCKED')) return `Esta chave não aceita pedidos deste endereço (${location.origin}). No Google Cloud, em Restrições do aplicativo › Sites, adicione ${location.origin}/*.`
+      if (has('API_KEY_SERVICE_BLOCKED')) return 'Esta chave está restrita a outras APIs. No Google Cloud, em Restrições de API da chave, inclua a YouTube Data API v3.'
+      if (has('accessNotConfigured', 'SERVICE_DISABLED')) return 'A YouTube Data API v3 não está ativada no projeto dessa chave.'
+      if (has('IAM_PERMISSION_DENIED') || (err && /permission denied on the service/i.test(err.message || ''))) return `O Google negou permissão para esta chave. Causa mais provável: ela foi criada ligada a uma conta de serviço, tipo de chave que o YouTube não aceita. Crie uma chave nova sem marcar a opção de autenticar por conta de serviço e confira se a YouTube Data API v3 está ativada.${code}`
+      return (err && err.message) ? `O YouTube recusou a busca: ${err.message}${code}` : `O YouTube recusou a busca.${code}`
     }
 
     const youtubeApi = async (path, params) => {
