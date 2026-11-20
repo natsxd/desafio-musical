@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <title>Desafio Musical</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* ---------- Tokens ---------- */
+    :root {
+      --bg: #17121d;
+      --surface: #211a29;
+      --surface-2: #2b2235;
+      --surface-3: #352a42;
+      --line: #3d3149;
+      --line-strong: #54465f;
+      --text: #f3eef6;
+      --muted: #a99bb8;
+      --faint: #7d6f8c;
+      --accent: #f2a541;
+      --accent-ink: #2a1a05;
+      --accent-hover: #f6b964;
+      --pos: #7fd1a0;
+      --neg: #f07f7a;
+      --warn-bg: #3b2c17;
+      --warn-line: #6b4b1d;
+
+      --font-display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+      --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+      --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+      --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+
+      --t-xs: 12px; --t-sm: 14px; --t-md: 16px; --t-lg: 20px; --t-xl: 28px;
+
+      --shadow-float: 0 1px 2px rgba(8, 4, 12, .3), 0 8px 24px rgba(8, 4, 12, .35);
+      --z-sticky: 10; --z-popover: 20; --z-modal: 30; --z-toast: 40;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: var(--t-md);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    img { display: block; max-width: 100%; }
+    .num { font-variant-numeric: tabular-nums; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+      min-height: 36px; padding: 0 var(--s4);
+      border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      background: var(--surface-2); color: var(--text);
+      font-size: var(--t-sm); font-weight: 600; white-space: nowrap;
+      cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+    .btn:hover { background: var(--surface-3); border-color: var(--faint); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn svg { width: 16px; height: 16px; flex: none; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+    .btn-ghost:hover { background: var(--surface-2); border-color: transparent; color: var(--text); }
+    .btn-danger { color: var(--neg); }
+    .btn-danger:hover { border-color: var(--neg); background: #3a1f26; }
+    .btn-icon { width: 36px; padding: 0; }
+    .btn-sm { min-height: 30px; padding: 0 var(--s3); font-size: var(--t-xs); }
+    .btn-sm.btn-icon { width: 30px; padding: 0; }
+    .btn-lg { min-height: 48px; padding: 0 var(--s5); font-size: var(--t-md); }
+
+    /* ---------- Inputs ---------- */
+    .field { display: flex; flex-direction: column; gap: var(--s1); }
+    .field label, .label { font-size: var(--t-xs); font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+    .input {
+      min-height: 36px; padding: 0 var(--s3);
+      background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+      transition: border-color 120ms ease;
+    }
+    .input:hover { border-color: var(--faint); }
+    .input:focus { outline: none; border-color: var(--accent); }
+    .input-lg { min-height: 44px; font-size: var(--t-md); }
+    .cell-input {
+      width: 100%; min-height: 32px; padding: 0 var(--s2);
+      background: transparent; border: 1px solid transparent; border-radius: var(--r-sm);
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+    .cell-input:hover { border-color: var(--line); }
+    .cell-input:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+    .check { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); cursor: pointer; user-select: none; }
+    .check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+    .required { color: var(--accent); }
+
+    /* ---------- App shell ---------- */
+    .topbar {
+      position: sticky; top: 0; z-index: var(--z-sticky);
+      display: flex; align-items: center; gap: var(--s5);
+      padding: var(--s3) var(--s5);
+      background: var(--bg); border-bottom: 1px solid var(--line);
+    }
+    .brand {
+      font-family: var(--font-display); font-weight: 800; font-size: var(--t-xl);
+      line-height: 1; text-transform: uppercase; letter-spacing: .02em; margin: 0;
+    }
+    .brand span { color: var(--accent); }
+    .tabs { display: flex; gap: var(--s1); overflow-x: auto; }
+    .tab {
+      display: inline-flex; align-items: center; gap: var(--s2);
+      min-height: 36px; padding: 0 var(--s3);
+      border: 0; border-radius: var(--r-sm); background: transparent;
+      color: var(--muted); font-weight: 600; font-size: var(--t-sm); cursor: pointer; white-space: nowrap;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+    .tab:hover { color: var(--text); background: var(--surface); }
+    .tab[aria-selected="true"] { color: var(--text); background: var(--surface-2); }
+    .tab .count { font-size: var(--t-xs); color: var(--faint); font-variant-numeric: tabular-nums; }
+    .topbar-meta { margin-left: auto; font-size: var(--t-sm); color: var(--muted); white-space: nowrap; }
+    .topbar-meta strong { color: var(--text); }
+
+    main { padding: var(--s5); max-width: 1600px; margin: 0 auto; }
+
+    .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s4); margin-bottom: var(--s5); }
+    .page-head h2 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1; text-transform: uppercase; }
+    .page-head p { margin: var(--s1) 0 0; color: var(--muted); font-size: var(--t-sm); max-width: 60ch; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: var(--s2); margin-left: auto; }
+
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+    .panel-head { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); }
+    .panel-title { margin: 0; font-size: var(--t-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .panel-body { padding: var(--s4); }
+
+    .notice {
+      display: flex; gap: var(--s3); align-items: flex-start;
+      padding: var(--s3) var(--s4); margin-bottom: var(--s4);
+      background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: var(--r-md);
+      font-size: var(--t-sm);
+    }
+    .notice svg { width: 18px; height: 18px; flex: none; margin-top: 2px; color: var(--accent); }
+    .notice p { margin: 0; }
+    .notice .actions { margin-left: auto; display: flex; gap: var(--s2); flex-wrap: wrap; }
+
+    .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--muted); font-size: var(--t-sm); }
+    .empty strong { display: block; color: var(--text); font-size: var(--t-md); margin-bottom: var(--s1); }
+    .empty .btn { margin-top: var(--s3); }
+
+    /* ---------- Game layout ---------- */
+    .game {
+      display: grid; gap: var(--s4);
+      grid-template-columns: 270px minmax(0, 1fr) 360px;
+      grid-template-areas: "queue deck score";
+      align-items: start;
+    }
+    .game-queue { grid-area: queue; }
+    .game-deck { grid-area: deck; }
+    .game-score { grid-area: score; }
+    @media (max-width: 1240px) {
+      .game { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "deck score" "queue score"; }
+    }
+    @media (max-width: 860px) {
+      .game { grid-template-columns: minmax(0, 1fr); grid-template-areas: "deck" "score" "queue"; }
+      main { padding: var(--s4); }
+      .topbar { flex-wrap: wrap; gap: var(--s3); padding: var(--s3) var(--s4); }
+      .topbar-meta { display: none; }
+      .tabs { order: 3; width: 100%; }
+    }
+
+    /* Queue */
+    .queue-list { position: relative; list-style: none; margin: 0; padding: var(--s2); max-height: calc(100vh - 220px); overflow-y: auto; }
+    .queue-item {
+      width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: var(--s2);
+      padding: var(--s2); border: 0; border-radius: var(--r-sm); background: transparent; text-align: left; cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    .queue-item:hover { background: var(--surface-2); }
+    .queue-item[aria-current="true"] { background: var(--surface-3); box-shadow: inset 3px 0 0 var(--accent); }
+    .queue-idx { font-size: var(--t-xs); color: var(--faint); text-align: right; font-variant-numeric: tabular-nums; }
+    .queue-text { min-width: 0; }
+    .queue-title { display: block; font-size: var(--t-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-artist { display: block; font-size: var(--t-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-item.is-played .queue-title, .queue-item.is-played .queue-artist { color: var(--faint); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+    .queue-flags { display: flex; gap: var(--s1); color: var(--faint); }
+    .queue-flags svg { width: 14px; height: 14px; }
+    .queue-flags .has-video { color: var(--pos); }
+    .seg { display: inline-flex; padding: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm); margin-left: auto; }
+    .seg button { border: 0; background: transparent; color: var(--muted); font-size: var(--t-xs); font-weight: 600; padding: 2px var(--s2); border-radius: 4px; cursor: pointer; }
+    .seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text); }
+
+    /* Deck */
+    .deck-now { padding: var(--s5) var(--s5) var(--s4); border-bottom: 1px solid var(--line); }
+    .eyebrow { font-size: var(--t-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); }
+    .now-title {
+      margin: var(--s2) 0 0; font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(36px, 4.2vw, 64px); line-height: .95; text-transform: uppercase; letter-spacing: .01em;
+      overflow-wrap: anywhere;
+    }
+    .now-artist { margin: var(--s2) 0 0; font-size: var(--t-lg); color: var(--muted); font-weight: 500; }
+    .now-title.is-free { color: var(--muted); }
+    .deck-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s4); }
+
+    .deck-section { padding: var(--s4) var(--s5); border-bottom: 1px solid var(--line); }
+    .deck-section:last-child { border-bottom: 0; }
+    .search-row { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
+    .search-box { position: relative; flex: 1 1 280px; display: flex; align-items: center; }
+    .search-box svg { position: absolute; left: var(--s3); width: 18px; height: 18px; color: var(--faint); pointer-events: none; }
+    .search-box .input { width: 100%; padding-left: 38px; padding-right: 92px; }
+    .lyrics-chip {
+      position: absolute; right: var(--s2);
+      font-size: var(--t-xs); font-weight: 700; color: var(--accent-ink); background: var(--accent);
+      padding: 2px var(--s2); border-radius: 999px; pointer-events: none;
+    }
+    .search-hint { margin: var(--s2) 0 0; font-size: var(--t-xs); color: var(--faint); }
+
+    .results { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin-top: var(--s4); }
+    .result {
+      display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2);
+      border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg); text-align: left; cursor: pointer;
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+    .result:hover { border-color: var(--faint); background: var(--surface-2); }
+    .result[aria-pressed="true"] { border-color: var(--accent); }
+    .thumb { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb .dur { position: absolute; right: var(--s1); bottom: var(--s1); padding: 0 var(--s1); border-radius: 4px; background: rgba(15, 10, 20, .85); font-size: var(--t-xs); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .result-title { font-size: var(--t-sm); font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .result-channel { font-size: var(--t-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .skeleton { aspect-ratio: 16 / 9; border-radius: var(--r-sm); background: var(--surface-2); }
+    .skeleton-line { height: 12px; border-radius: 4px; background: var(--surface-2); }
+    .skeleton-line.short { width: 60%; }
+    .search-error { margin-top: var(--s4); padding: var(--s4); border: 1px dashed var(--line-strong); border-radius: var(--r-md); font-size: var(--t-sm); }
+    .search-error p { margin: 0 0 var(--s3); }
+
+    .player-wrap { display: grid; gap: var(--s3); }
+    .player-frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; background: #0f0b13; border: 1px solid var(--line); isolation: isolate; }
+    .player-frame > div, .player-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .player-empty { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; padding: var(--s5); text-align: center; color: var(--faint); font-size: var(--t-sm); }
+    .player-error { position: absolute; inset: 0; z-index: 2; display: grid; place-content: center; gap: var(--s3); padding: var(--s5); text-align: center; background: rgba(23, 18, 29, .94); font-size: var(--t-sm); }
+    .player-error strong { font-size: var(--t-md); }
+    .player-error .btn { justify-self: center; }
+    .player-meta { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+    .player-meta .video-title { flex: 1 1 200px; min-width: 0; font-size: var(--t-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .start-field { display: inline-flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); color: var(--muted); }
+    .start-field .input { width: 84px; }
+
+    /* Scoreboard */
+    .score-list { display: grid; gap: var(--s2); padding: var(--s3); }
+    .team-score {
+      --team: var(--accent);
+      display: grid; grid-template-columns: 6px minmax(0, 1fr) auto; gap: 0 var(--s3);
+      padding: var(--s3) var(--s3) var(--s3) 0; border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .team-score::before { content: ""; grid-row: 1 / span 2; background: var(--team); }
+    .team-name { min-width: 0; align-self: center; }
+    .team-name strong { display: block; font-size: var(--t-md); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-name span { display: block; font-size: var(--t-xs); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-points { text-align: right; line-height: 1; }
+    .team-points b { display: block; font-family: var(--font-display); font-weight: 800; font-size: 52px; color: var(--team); font-variant-numeric: tabular-nums; }
+    .team-points small { font-size: var(--t-xs); color: var(--faint); }
+    .score-btns { grid-column: 2 / span 2; display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--s1); margin-top: var(--s3); }
+    .score-btn {
+      min-height: 36px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface);
+      font-weight: 700; font-size: var(--t-sm); font-variant-numeric: tabular-nums; cursor: pointer;
+      transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+    .score-btn.neg { color: var(--neg); }
+    .score-btn.pos { color: var(--pos); }
+    .score-btn:hover { background: var(--surface-3); border-color: var(--line-strong); }
+    .score-btn:active { transform: translateY(1px); }
+    .rank { font-size: var(--t-xs); color: var(--faint); font-weight: 600; }
+    .rank.first { color: var(--accent); }
+    .score-foot { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--line); font-size: var(--t-xs); color: var(--muted); }
+    .score-foot .btn { margin-left: auto; }
+
+    /* ---------- Tables & lists ---------- */
+    .add-row { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: flex-end; padding: var(--s4); border-bottom: 1px solid var(--line); }
+    .add-row .field { flex: 1 1 200px; }
+    .list-filter { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .list-filter .input { flex: 1 1 220px; max-width: 360px; }
+    .list-filter .meta { font-size: var(--t-xs); color: var(--muted); margin-left: auto; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+    th { text-align: left; font-size: var(--t-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); white-space: nowrap; }
+    td { padding: var(--s1) var(--s3); border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+    tbody tr { transition: background-color 120ms ease; }
+    tbody tr:hover { background: var(--surface-2); }
+    td.idx { width: 48px; color: var(--faint); text-align: right; font-variant-numeric: tabular-nums; }
+    td.actions { width: 1%; white-space: nowrap; text-align: right; }
+    td.video { max-width: 260px; }
+    .video-tag { display: inline-flex; align-items: center; gap: var(--s1); max-width: 100%; font-size: var(--t-xs); color: var(--pos); }
+    .video-tag span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .video-tag svg { width: 14px; height: 14px; flex: none; }
+    .dim { color: var(--faint); font-size: var(--t-xs); }
+    .select { min-height: 32px; padding: 0 var(--s2); background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-sm); }
+
+    /* Teams */
+    .teams-grid { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .team-card { --team: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+    .team-card-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3); border-bottom: 1px solid var(--line); border-top: 4px solid var(--team); }
+    .swatch { width: 28px; height: 28px; flex: none; border-radius: 50%; border: 2px solid var(--surface-3); background: var(--team); cursor: pointer; transition: transform 120ms ease; }
+    .swatch:hover { transform: scale(1.08); }
+    .team-card-head .cell-input { font-weight: 700; font-size: var(--t-md); }
+    .team-card-body { padding: var(--s3); display: grid; gap: var(--s3); }
+    .score-edit { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-sm); color: var(--muted); }
+    .score-edit .input { width: 90px; font-variant-numeric: tabular-nums; }
+    .chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+    .chip { display: inline-flex; align-items: center; gap: var(--s1); padding: 2px 2px 2px var(--s3); border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: var(--t-sm); }
+    .chip button { width: 24px; height: 24px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; transition: background-color 120ms ease, color 120ms ease; }
+    .chip button:hover { background: var(--surface-3); color: var(--neg); }
+    .chip button svg { width: 12px; height: 12px; }
+    .member-add { display: flex; gap: var(--s2); }
+    .member-add .input { flex: 1; min-width: 0; }
+
+    /* Settings */
+    .settings-grid { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+    @media (max-width: 960px) { .settings-grid { grid-template-columns: minmax(0, 1fr); } }
+    .steps { margin: 0; padding-left: var(--s5); display: grid; gap: var(--s2); font-size: var(--t-sm); color: var(--muted); max-width: 70ch; }
+    .steps strong { color: var(--text); font-weight: 600; }
+    .steps a { color: var(--accent); }
+    .key-row { display: flex; gap: var(--s2); flex-wrap: wrap; }
+    .key-row .input { flex: 1 1 260px; font-family: ui-monospace, Consolas, monospace; font-size: var(--t-sm); }
+    .stack { display: grid; gap: var(--s4); }
+    .hint { font-size: var(--t-xs); color: var(--faint); margin: 0; }
+    .status-ok { color: var(--pos); font-size: var(--t-sm); }
+    .status-err { color: var(--neg); font-size: var(--t-sm); }
+
+    /* ---------- Menu ---------- */
+    .menu { position: relative; }
+    .menu > summary { list-style: none; }
+    .menu > summary::-webkit-details-marker { display: none; }
+    .menu-pop {
+      position: absolute; right: 0; top: calc(100% + var(--s1)); z-index: var(--z-popover);
+      min-width: 220px; padding: var(--s2); display: grid; gap: var(--s1);
+      background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--r-md); box-shadow: var(--shadow-float);
+    }
+    .menu-pop .check { padding: var(--s2); }
+    .menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: var(--s1) 0; width: 100%; }
+    .menu-item { display: flex; align-items: center; gap: var(--s2); width: 100%; padding: var(--s2); border: 0; border-radius: var(--r-sm); background: transparent; text-align: left; font-size: var(--t-sm); cursor: pointer; }
+    .menu-item:hover { background: var(--surface-3); }
+    .menu-item svg { width: 16px; height: 16px; color: var(--muted); }
+
+    /* ---------- Dialog & toast ---------- */
+    .backdrop { position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center; padding: var(--s4); background: rgba(10, 6, 14, .7); animation: fade-in 150ms ease-out; }
+    .dialog { width: min(460px, 100%); padding: var(--s5); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow-float); animation: rise-in 180ms ease-out; }
+    .dialog h3 { margin: 0 0 var(--s2); font-size: var(--t-lg); }
+    .dialog p { margin: 0; color: var(--muted); font-size: var(--t-sm); white-space: pre-line; }
+    .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s2); margin-top: var(--s5); }
+    .toasts { position: fixed; bottom: var(--s5); left: 50%; transform: translateX(-50%); z-index: var(--z-toast); display: grid; gap: var(--s2); width: min(440px, calc(100% - 32px)); }
+    .toast { padding: var(--s3) var(--s4); border-radius: var(--r-md); background: var(--surface-3); border: 1px solid var(--line-strong); box-shadow: var(--shadow-float); font-size: var(--t-sm); animation: rise-in 180ms ease-out; }
+    .toast.error { border-color: var(--neg); }
+    @keyframes fade-in { from { opacity: 0; } }
+    @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+    }
+
+    .boot { min-height: 100vh; display: grid; place-items: center; color: var(--muted); font-size: var(--t-sm); }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="boot">Carregando o Desafio Musical…</div></div>
+  <script>
+    window.addEventListener('load', function () {
+      if (!window.React || !window.ReactDOM || !window.Babel) {
+        document.getElementById('root').innerHTML =
+          '<div class="boot">Não foi possível carregar o site. Verifique a conexão com a internet e recarregue a página.</div>'
+      }
+    })
+  </script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback, useContext, createContext, forwardRef, useImperativeHandle } = React
+
+    // ============================================================
+    // Constantes
+    // ============================================================
+    const STORAGE_KEY = 'desafioMusical.v2'
+    const TEAM_COLORS = ['#7fd1b9', '#f28482', '#8ea8ff', '#f6d365', '#c49bf2', '#6ec3f4', '#f4a3c8', '#a8d672']
+    const SCORE_STEPS = [-20, -10, -5, 5, 10, 20]
+    const IS_FILE = location.protocol === 'file:'
+
+    const emptyData = () => ({
+      songs: [],
+      participants: [],
+      teams: [],
+      history: [],
+      currentSongId: null,
+      settings: { apiKey: '', lyrics: false }
+    })
+
+    // ============================================================
+    // Utilidades
+    // ============================================================
+    const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4)
+    const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
+
+    const getYouTubeVideoId = (input) => {
+      if (!input) return null
+      const s = String(input).trim()
+      if (/^[\w-]{11}$/.test(s)) return s
+      const m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/v\/|\/live\/)([\w-]{11})/)
+      return m ? m[1] : null
+    }
+    const looksLikeYouTubeUrl = (s) => /youtu\.?be/i.test(String(s || '')) && !!getYouTubeVideoId(s)
+
+    const parseTime = (v) => {
+      const s = String(v ?? '').trim()
+      if (!s) return 0
+      if (s.includes(':')) return s.split(':').reduce((acc, p) => acc * 60 + (parseInt(p, 10) || 0), 0)
+      const n = parseInt(s, 10)
+      return Number.isFinite(n) && n > 0 ? n : 0
+    }
+    const formatTime = (sec) => {
+      if (sec == null || !Number.isFinite(sec)) return ''
+      sec = Math.round(sec)
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60
+      return (h ? `${h}:${String(m).padStart(2, '0')}` : `${m}`) + `:${String(s).padStart(2, '0')}`
+    }
+    const parseIsoDuration = (iso) => {
+      const m = String(iso || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+      return m ? (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0) : null
+    }
+    const decodeHtml = (s) => {
+      const t = document.createElement('textarea')
+      t.innerHTML = s
+      return t.value
+    }
+    const shuffle = (arr) => {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]]
+      }
+      return a
+    }
+    const today = () => new Date().toISOString().slice(0, 10)
+    const nextTeamColor = (teams) => TEAM_COLORS.find(c => !teams.some(t => t.color === c)) || TEAM_COLORS[teams.length % TEAM_COLORS.length]
+    const newSong = (p) => ({ id: uid(), title: p.title, artist: p.artist || '', videoId: p.videoId || null, videoTitle: p.videoTitle || '', start: p.start || 0, played: !!p.played })
+
+    // ============================================================
+    // Armazenamento (com migração da versão antiga)
+    // ============================================================
+    const migrateOldData = () => {
+      try {
+        const links = JSON.parse(localStorage.getItem('linksData') || 'null')
+        const oldTeams = JSON.parse(localStorage.getItem('teamsData') || 'null')
+        if (!links && !oldTeams) return null
+        const d = emptyData()
+        if (links && Array.isArray(links.songList)) {
+          d.songs = links.songList
+            .filter(s => s && (s.songName || s.link))
+            .map(s => newSong({ title: String(s.songName || 'Sem nome'), artist: s.artist ? String(s.artist) : '', videoId: getYouTubeVideoId(s.link) }))
+        }
+        if (oldTeams && Array.isArray(oldTeams.teams)) {
+          const count = Number(oldTeams.numberOfTeams) || oldTeams.teams.length
+          oldTeams.teams.slice(0, count).forEach((t, i) => {
+            const memberIds = ((t && t.teamMembers) || []).map(name => {
+              const p = { id: uid(), name: String(name) }
+              d.participants.push(p)
+              return p.id
+            })
+            d.teams.push({ id: uid(), name: `Time ${i + 1}`, color: TEAM_COLORS[i % TEAM_COLORS.length], memberIds, score: Number(t && t.score) || 0 })
+          })
+        }
+        return d
+      } catch (e) {
+        return null
+      }
+    }
+
+    const loadData = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          const base = emptyData()
+          return { ...base, ...parsed, settings: { ...base.settings, ...(parsed.settings || {}) } }
+        }
+      } catch (e) { /* segue com dados vazios */ }
+      return migrateOldData() || emptyData()
+    }
+
+    // ============================================================
+    // Arquivos: leitura e escrita (xlsx / csv / json)
+    // ============================================================
+    const parseCsv = (text) => {
+      text = text.replace(/^﻿/, '')
+      const firstLine = text.split(/\r?\n/)[0] || ''
+      const delim = [';', ',', '\t'].map(d => [d, firstLine.split(d).length]).sort((a, b) => b[1] - a[1])[0][0]
+      const rows = []
+      let row = [], field = '', quoted = false
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i]
+        if (quoted) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++ } else quoted = false
+          } else field += c
+        } else if (c === '"') quoted = true
+        else if (c === delim) { row.push(field); field = '' }
+        else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i++
+          row.push(field); rows.push(row); row = []; field = ''
+        } else field += c
+      }
+      if (field || row.length) { row.push(field); rows.push(row) }
+      return rows
+    }
+
+    const readTableFile = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      const isCsv = /\.(csv|txt)$/i.test(file.name)
+      reader.onload = (e) => {
+        try {
+          let rows
+          if (isCsv) {
+            rows = parseCsv(e.target.result)
+          } else {
+            if (!window.XLSX) throw new Error('A biblioteca de Excel não carregou. Verifique a internet ou use um arquivo .csv.')
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' })
+            rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false })
+          }
+          resolve(rows.map(r => r.map(c => String(c ?? '').trim())).filter(r => r.some(Boolean)))
+        } catch (err) { reject(err) }
+      }
+      reader.onerror = () => reject(reader.error)
+      if (isCsv) reader.readAsText(file, 'utf-8')
+      else reader.readAsArrayBuffer(file)
+    })
+
+    const downloadFile = (content, filename, type) => {
+      const blob = content instanceof Blob ? content : new Blob([content], { type })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1500)
+    }
+
+    const toCsv = (rows) => '﻿' + rows.map(r => r.map(v => {
+      const s = String(v ?? '')
+      return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }).join(';')).join('\r\n')
+
+    const exportTable = (rows, baseName, format, sheetName) => {
+      if (format === 'csv') {
+        downloadFile(toCsv(rows), `${baseName}.csv`, 'text/csv;charset=utf-8')
+        return
+      }
+      if (!window.XLSX) throw new Error('A biblioteca de Excel não carregou. Exporte em .csv.')
+      const ws = XLSX.utils.aoa_to_sheet(rows)
+      ws['!cols'] = rows[0].map((_, i) => ({ wch: Math.min(48, Math.max(10, ...rows.map(r => String(r[i] ?? '').length + 2))) }))
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+      XLSX.writeFile(wb, `${baseName}.xlsx`)
+    }
+
+    const findCol = (header, names) => header.findIndex(h => names.includes(norm(h)))
+
+    const parseSongRows = (rows) => {
+      if (!rows.length) return []
+      const header = rows[0]
+      let iTitle = findCol(header, ['musica', 'nome', 'titulo', 'title', 'song', 'cancao', 'nome da musica'])
+      let iArtist = findCol(header, ['artista', 'artist', 'cantor', 'banda', 'interprete', 'artistas'])
+      let iLink = findCol(header, ['link', 'video', 'url', 'youtube', 'link do youtube'])
+      let iStart = findCol(header, ['inicio', 'start', 'comeco', 'tempo', 'inicio (s)'])
+      let iPlayed = findCol(header, ['tocada', 'played'])
+      let body = rows
+      if (iTitle >= 0) {
+        body = rows.slice(1)
+      } else if (looksLikeYouTubeUrl(rows[0][0])) {
+        iLink = 0; iTitle = 1; iArtist = 2 // formato antigo: link | música | artista
+      } else {
+        iTitle = 0; iArtist = 1
+      }
+      return body
+        .map(r => ({
+          title: r[iTitle] || '',
+          artist: iArtist >= 0 ? r[iArtist] || '' : '',
+          videoId: iLink >= 0 ? getYouTubeVideoId(r[iLink]) : null,
+          start: iStart >= 0 ? parseTime(r[iStart]) : 0,
+          played: iPlayed >= 0 ? ['sim', 'x', 'true', '1', 'yes'].includes(norm(r[iPlayed])) : false
+        }))
+        .filter(s => s.title)
+    }
+
+    const parseNameRows = (rows) => {
+      if (!rows.length) return []
+      const i = findCol(rows[0], ['participante', 'participantes', 'nome', 'name', 'jogador', 'pessoa'])
+      const body = i >= 0 ? rows.slice(1) : rows
+      const col = i >= 0 ? i : 0
+      return body.map(r => r[col]).filter(Boolean)
+    }
+
+    const parseTeamRows = (rows) => {
+      if (!rows.length) return []
+      const header = rows[0]
+      let iTeam = findCol(header, ['time', 'equipe', 'team', 'grupo'])
+      let iName = findCol(header, ['participante', 'nome', 'membro', 'jogador', 'name', 'member'])
+      let iScore = findCol(header, ['pontuacao', 'pontos', 'score', 'placar'])
+      let body = rows
+      if (iTeam >= 0) body = rows.slice(1)
+      else { iTeam = 0; iName = 1; iScore = 2 }
+      const teams = []
+      body.forEach(r => {
+        const teamName = r[iTeam]
+        if (!teamName) return
+        let t = teams.find(x => norm(x.name) === norm(teamName))
+        if (!t) { t = { name: teamName, members: [], score: null }; teams.push(t) }
+        const member = iName >= 0 ? r[iName] : ''
+        if (member && !t.members.some(m => norm(m) === norm(member))) t.members.push(member)
+        if (t.score == null && iScore >= 0 && r[iScore] !== '' && r[iScore] != null) {
+          const n = parseInt(String(r[iScore]).replace(/[^\d-]/g, ''), 10)
+          if (Number.isFinite(n)) t.score = n
+        }
+      })
+      return teams
+    }
+
+    // ============================================================
+    // YouTube: busca (Data API v3) e player (IFrame API)
+    // ============================================================
+    const apiErrorMessage = (json) => {
+      const err = json && json.error
+      const reason = err && err.errors && err.errors[0] && err.errors[0].reason
+      const detail = err && err.details && err.details[0] && err.details[0].reason
+      if (reason === 'quotaExceeded') return 'A cota diária da chave acabou. Ela renova por volta das 5h (horário de Brasília). Até lá, use "Abrir busca no YouTube".'
+      if (detail === 'API_KEY_INVALID' || reason === 'keyInvalid' || (err && err.status === 'INVALID_ARGUMENT' && /API key/i.test(err.message))) return 'A chave da API é inválida. Confira em Ajustes.'
+      if (detail === 'API_KEY_HTTP_REFERRER_BLOCKED') return 'Esta chave não aceita pedidos deste endereço. Revise as restrições de site da chave no Google Cloud.'
+      if (reason === 'accessNotConfigured' || detail === 'SERVICE_DISABLED') return 'A YouTube Data API v3 não está ativada no projeto dessa chave.'
+      return (err && err.message) ? `O YouTube recusou a busca: ${err.message}` : 'O YouTube recusou a busca.'
+    }
+
+    const youtubeApi = async (path, params) => {
+      let res
+      try {
+        res = await fetch(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams(params)}`)
+      } catch (e) {
+        throw new Error('Sem conexão com o YouTube. Verifique a internet.')
+      }
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(apiErrorMessage(json))
+      return json
+    }
+
+    const searchCache = new Map()
+    const searchYouTube = async (q, key) => {
+      const cacheKey = norm(q)
+      if (searchCache.has(cacheKey)) return searchCache.get(cacheKey)
+      const json = await youtubeApi('search', { part: 'snippet', type: 'video', videoEmbeddable: 'true', maxResults: '12', regionCode: 'BR', q, key })
+      const items = (json.items || []).filter(i => i.id && i.id.videoId)
+      const durations = {}
+      if (items.length) {
+        try {
+          const det = await youtubeApi('videos', { part: 'contentDetails', id: items.map(i => i.id.videoId).join(','), key })
+          ;(det.items || []).forEach(v => { durations[v.id] = parseIsoDuration(v.contentDetails && v.contentDetails.duration) })
+        } catch (e) { /* duração é opcional */ }
+      }
+      const results = items.map(i => ({
+        videoId: i.id.videoId,
+        title: decodeHtml(i.snippet.title),
+        channel: decodeHtml(i.snippet.channelTitle),
+        thumb: `https://i.ytimg.com/vi/${i.id.videoId}/mqdefault.jpg`,
+        duration: durations[i.id.videoId] ?? null
+      }))
+      searchCache.set(cacheKey, results)
+      return results
+    }
+
+    const testApiKey = (key) => youtubeApi('videos', { part: 'id', id: 'jNQXAC9IVRw', key })
+
+    const youtubeSearchUrl = (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`
+    const youtubeWatchUrl = (id, start) => `https://www.youtube.com/watch?v=${id}${start ? `&t=${start}s` : ''}`
+    const openInWindow = (id, start) => window.open(youtubeWatchUrl(id, start), 'desafio-musical-player', 'popup,width=760,height=480')
+
+    let ytApiPromise = null
+    const loadYouTubeApi = () => {
+      if (ytApiPromise) return ytApiPromise
+      ytApiPromise = new Promise((resolve) => {
+        if (window.YT && window.YT.Player) return resolve(window.YT)
+        const prev = window.onYouTubeIframeAPIReady
+        window.onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(window.YT) }
+        const s = document.createElement('script')
+        s.src = 'https://www.youtube.com/iframe_api'
+        s.onerror = () => { ytApiPromise = null; resolve(null) }
+        document.head.appendChild(s)
+      })
+      return ytApiPromise
+    }
+
+    const PLAYER_ERRORS = {
+      2: 'O endereço do vídeo é inválido.',
+      5: 'O navegador não conseguiu tocar este vídeo.',
+      100: 'Este vídeo foi removido ou é privado.',
+      101: 'O dono do vídeo não permite tocá-lo fora do YouTube. Escolha outro resultado ou abra em janela.',
+      150: 'O dono do vídeo não permite tocá-lo fora do YouTube. Escolha outro resultado ou abra em janela.',
+      153: 'O YouTube bloqueou o player porque a página não informou de onde veio (erro 153). Isso acontece quando o arquivo é aberto direto do computador. Use o endereço hospedado ou abra em janela.',
+      api: 'Não foi possível carregar o player do YouTube. Verifique a internet.'
+    }
+
+    const YouTubePlayer = forwardRef(function YouTubePlayer({ video, onStateChange, onError }, ref) {
+      const hostRef = useRef(null)
+      const playerRef = useRef(null)
+      const readyRef = useRef(false)
+      const pendingRef = useRef(null)
+      const cbRef = useRef({})
+      cbRef.current = { onStateChange, onError }
+
+      const apply = (v) => {
+        const p = playerRef.current
+        if (!p) return
+        if (!v) { try { p.stopVideo() } catch (e) {} return }
+        const opts = { videoId: v.videoId, startSeconds: v.start || 0 }
+        if (v.autoplay) p.loadVideoById(opts)
+        else p.cueVideoById(opts)
+      }
+
+      useEffect(() => {
+        let cancelled = false
+        loadYouTubeApi().then((YT) => {
+          if (cancelled) return
+          if (!YT) { cbRef.current.onError && cbRef.current.onError('api'); return }
+          const playerVars = { playsinline: 1, rel: 0, modestbranding: 1 }
+          if (!IS_FILE) playerVars.origin = location.origin
+          playerRef.current = new YT.Player(hostRef.current, {
+            width: '100%',
+            height: '100%',
+            playerVars,
+            events: {
+              onReady: () => {
+                readyRef.current = true
+                if (pendingRef.current) apply(pendingRef.current)
+              },
+              onStateChange: (e) => cbRef.current.onStateChange && cbRef.current.onStateChange(e.data),
+              onError: (e) => cbRef.current.onError && cbRef.current.onError(e.data)
+            }
+          })
+        })
+        return () => {
+          cancelled = true
+          try { playerRef.current && playerRef.current.destroy() } catch (e) {}
+        }
+      }, [])
+
+      const key = video ? `${video.videoId}#${video.nonce}` : ''
+      useEffect(() => {
+        pendingRef.current = video
+        if (readyRef.current) apply(video)
+      }, [key])
+
+      useImperativeHandle(ref, () => ({
+        play: () => playerRef.current && playerRef.current.playVideo(),
+        pause: () => playerRef.current && playerRef.current.pauseVideo(),
+        seek: (s) => playerRef.current && playerRef.current.seekTo(s, true),
+        currentTime: () => (playerRef.current && playerRef.current.getCurrentTime ? playerRef.current.getCurrentTime() : 0)
+      }), [])
+
+      return <div ref={hostRef} />
+    })
+
+    // ============================================================
+    // Ícones (traço 2px, 24x24)
+    // ============================================================
+    const Icon = ({ d, children }) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {d ? <path d={d} /> : children}
+      </svg>
+    )
+    const I = {
+      play: <Icon><polygon points="7 4 20 12 7 20 7 4" /></Icon>,
+      pause: <Icon><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></Icon>,
+      restart: <Icon><path d="M3 12a9 9 0 1 0 3-6.7" /><polyline points="3 3 3 9 9 9" /></Icon>,
+      search: <Icon><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></Icon>,
+      plus: <Icon><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>,
+      trash: <Icon><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></Icon>,
+      upload: <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></Icon>,
+      download: <Icon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></Icon>,
+      external: <Icon><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></Icon>,
+      undo: <Icon><polyline points="9 14 4 9 9 4" /><path d="M20 20v-7a4 4 0 0 0-4-4H4" /></Icon>,
+      check: <Icon><polyline points="20 6 9 17 4 12" /></Icon>,
+      x: <Icon><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>,
+      next: <Icon><polygon points="5 4 15 12 5 20 5 4" /><line x1="19" y1="5" x2="19" y2="19" /></Icon>,
+      shuffle: <Icon><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></Icon>,
+      video: <Icon><rect x="2" y="5" width="15" height="14" rx="2" /><polygon points="22 7 17 11 22 15 22 7" /></Icon>,
+      alert: <Icon><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></Icon>,
+      flag: <Icon><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></Icon>
+    }
+
+    // ============================================================
+    // UI compartilhada: diálogo, toasts, menus, seletor de arquivo
+    // ============================================================
+    const UiContext = createContext(null)
+    const useUi = () => useContext(UiContext)
+
+    const Dialog = ({ dialog, onClose }) => {
+      const firstRef = useRef(null)
+      useEffect(() => {
+        if (!dialog) return
+        const prevFocus = document.activeElement
+        const t = setTimeout(() => firstRef.current && firstRef.current.focus(), 10)
+        const onKey = (e) => { if (e.key === 'Escape') onClose(null) }
+        window.addEventListener('keydown', onKey)
+        return () => { clearTimeout(t); window.removeEventListener('keydown', onKey); prevFocus && prevFocus.focus && prevFocus.focus() }
+      }, [dialog])
+      if (!dialog) return null
+      const lastIdx = dialog.actions.length - 1
+      return (
+        <div className="backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(null) }}>
+          <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+            <h3 id="dialog-title">{dialog.title}</h3>
+            {dialog.message && <p>{dialog.message}</p>}
+            <div className="dialog-actions">
+              {dialog.actions.map((a, i) => (
+                <button
+                  key={a.value}
+                  ref={i === lastIdx ? firstRef : null}
+                  className={`btn ${a.variant === 'primary' ? 'btn-primary' : a.variant === 'danger' ? 'btn-danger' : ''}`}
+                  onClick={() => onClose(a.value)}
+                >{a.label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    const Menu = ({ label, icon, children, className = 'btn' }) => {
+      const ref = useRef(null)
+      useEffect(() => {
+        const onDoc = (e) => { if (ref.current && ref.current.open && !ref.current.contains(e.target)) ref.current.open = false }
+        document.addEventListener('mousedown', onDoc)
+        return () => document.removeEventListener('mousedown', onDoc)
+      }, [])
+      const close = () => { if (ref.current) ref.current.open = false }
+      return (
+        <details className="menu" ref={ref}>
+          <summary className={className}>{icon}{label}</summary>
+          <div className="menu-pop">{typeof children === 'function' ? children(close) : children}</div>
+        </details>
+      )
+    }
+
+    const FileButton = ({ accept, label, onFile, className = 'btn' }) => {
+      const ref = useRef(null)
+      return (
+        <>
+          <button className={className} onClick={() => ref.current.click()}>{I.upload}{label}</button>
+          <input
+            ref={ref}
+            type="file"
+            accept={accept}
+            hidden
+            onChange={(e) => {
+              const f = e.target.files && e.target.files[0]
+              e.target.value = ''
+              if (f) onFile(f)
+            }}
+          />
+        </>
+      )
+    }
+
+    const ExportMenu = ({ onExport, extra }) => (
+      <Menu label="Exportar" icon={I.download}>
+        {(close) => (
+          <>
+            {extra}
+            {extra && <hr />}
+            <button className="menu-item" onClick={() => { close(); onExport('xlsx') }}>{I.download}Planilha do Excel (.xlsx)</button>
+            <button className="menu-item" onClick={() => { close(); onExport('csv') }}>{I.download}Texto separado (.csv)</button>
+          </>
+        )}
+      </Menu>
+    )
+
+    // Pergunta se a importação deve substituir ou somar à lista atual
+    const askImportMode = (ask, one, many, count, existing) => existing === 0
+      ? Promise.resolve('replace')
+      : ask({
+          title: `Importar ${plural(count, one, many)}`,
+          message: `Já existem ${existing} na lista. O que fazer com elas?`,
+          actions: [
+            { label: 'Cancelar', value: null },
+            { label: 'Substituir a lista', value: 'replace', variant: 'danger' },
+            { label: 'Adicionar ao final', value: 'append', variant: 'primary' }
+          ]
+        })
+
+    // ============================================================
+    // Aba: Jogo
+    // ============================================================
+    const QueuePanel = ({ songs, currentSongId, onSelect, goTo }) => {
+      const [filter, setFilter] = useState('pending')
+      const listRef = useRef(null)
+      const visible = songs.map((s, i) => ({ s, i })).filter(({ s }) => filter === 'all' || !s.played || s.id === currentSongId)
+      useEffect(() => {
+        // Rola só a lista (não a página) até a música atual
+        const list = listRef.current
+        const el = list && list.querySelector('[aria-current="true"]')
+        if (!el) return
+        const top = el.offsetTop, bottom = top + el.offsetHeight
+        if (top < list.scrollTop || bottom > list.scrollTop + list.clientHeight) {
+          list.scrollTop = top - list.clientHeight / 2 + el.offsetHeight / 2
+        }
+      }, [currentSongId])
+      return (
+        <section className="panel game-queue" aria-label="Fila de músicas">
+          <div className="panel-head">
+            <h3 className="panel-title">Fila</h3>
+            <div className="seg" role="group" aria-label="Filtrar fila">
+              <button aria-pressed={filter === 'pending'} onClick={() => setFilter('pending')}>A tocar</button>
+              <button aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>Todas</button>
+            </div>
+          </div>
+          {songs.length === 0 ? (
+            <div className="empty">
+              <strong>Nenhuma música na lista</strong>
+              Importe uma planilha ou adicione músicas uma a uma.
+              <div><button className="btn" onClick={() => goTo('songs')}>Ir para Músicas</button></div>
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="empty"><strong>Todas as músicas já tocaram</strong>Veja a lista completa em "Todas".</div>
+          ) : (
+            <ul className="queue-list" ref={listRef}>
+              {visible.map(({ s, i }) => (
+                <li key={s.id}>
+                  <button
+                    className={`queue-item ${s.played ? 'is-played' : ''}`}
+                    aria-current={s.id === currentSongId}
+                    onClick={() => onSelect(s.id)}
+                  >
+                    <span className="queue-idx">{i + 1}</span>
+                    <span className="queue-text">
+                      <span className="queue-title">{s.title}</span>
+                      {s.artist && <span className="queue-artist">{s.artist}</span>}
+                    </span>
+                    <span className="queue-flags">
+                      {s.videoId && <span className="has-video" title="Vídeo já escolhido">{I.video}</span>}
+                      {s.played && <span title="Já tocou">{I.check}</span>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )
+    }
+
+    const SearchResults = ({ state, activeVideoId, onPick, query }) => {
+      if (state.status === 'idle') return null
+      if (state.status === 'loading') {
+        return (
+          <div className="results" aria-busy="true" aria-label="Buscando vídeos">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div className="result" key={i} style={{ cursor: 'default' }}>
+                <div className="skeleton" />
+                <div className="skeleton-line" />
+                <div className="skeleton-line short" />
+              </div>
+            ))}
+          </div>
+        )
+      }
+      if (state.status === 'error' || state.status === 'nokey') {
+        return (
+          <div className="search-error" role="alert">
+            <p>{state.status === 'nokey'
+              ? 'Para ver os vídeos aqui dentro, cadastre uma chave da API do YouTube em Ajustes. Enquanto isso, abra a busca no YouTube, copie o link do vídeo e cole no campo de busca.'
+              : state.message}</p>
+            <a className="btn" href={youtubeSearchUrl(query)} target="_blank" rel="noopener noreferrer">{I.external}Abrir busca no YouTube</a>
+          </div>
+        )
+      }
+      if (!state.results.length) {
+        return <div className="search-error"><p>Nenhum vídeo encontrado para "{query}". Tente outro termo ou desmarque "lyrics".</p></div>
+      }
+      return (
+        <div className="results">
+          {state.results.map(r => (
+            <button key={r.videoId} className="result" aria-pressed={r.videoId === activeVideoId} onClick={() => onPick(r)}>
+              <div className="thumb">
+                <img src={r.thumb} alt="" loading="lazy" />
+                {r.duration != null && <span className="dur">{formatTime(r.duration)}</span>}
+              </div>
+              <span className="result-title">{r.title}</span>
+              <span className="result-channel">{r.channel}</span>
+            </button>
+          ))}
+        </div>
+      )
+    }
+
+    const Deck = ({ data, update, goTo }) => {
+      const { toast } = useUi()
+      const song = data.songs.find(s => s.id === data.currentSongId) || null
+      const songIndex = song ? data.songs.indexOf(song) : -1
+      const lyrics = data.settings.lyrics
+
+      const baseQuery = (s) => s ? [s.title, s.artist].filter(Boolean).join(' ') : ''
+      const [query, setQuery] = useState(baseQuery(song))
+      const [search, setSearch] = useState({ status: 'idle', results: [] })
+      const [showResults, setShowResults] = useState(true)
+      const [video, setVideo] = useState(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: song.start, nonce: 0 } : null)
+      const [freeStart, setFreeStart] = useState(0)
+      const [playing, setPlaying] = useState(false)
+      const [playerError, setPlayerError] = useState(null)
+      const playerRef = useRef(null)
+      const searchInputRef = useRef(null)
+      const lastSearched = useRef('')
+
+      // Troca de música selecionada
+      useEffect(() => {
+        setQuery(baseQuery(song))
+        setSearch({ status: 'idle', results: [] })
+        setShowResults(true)
+        setPlayerError(null)
+        setFreeStart(0)
+        setVideo(song && song.videoId ? { videoId: song.videoId, title: song.videoTitle, start: song.start, nonce: Date.now(), autoplay: false } : null)
+      }, [data.currentSongId])
+
+      const fullQuery = (query.trim() + (lyrics && !looksLikeYouTubeUrl(query) ? ' lyrics' : '')).trim()
+      const start = song ? song.start || 0 : freeStart
+
+      const runSearch = async () => {
+        const q = query.trim()
+        if (!q) { searchInputRef.current && searchInputRef.current.focus(); return }
+        if (looksLikeYouTubeUrl(q)) {
+          pickVideo({ videoId: getYouTubeVideoId(q), title: '' })
+          return
+        }
+        setShowResults(true)
+        if (!data.settings.apiKey) { setSearch({ status: 'nokey', results: [] }); return }
+        lastSearched.current = fullQuery
+        setSearch({ status: 'loading', results: [] })
+        try {
+          const results = await searchYouTube(fullQuery, data.settings.apiKey)
+          if (lastSearched.current === fullQuery) setSearch({ status: 'done', results })
+        } catch (e) {
+          setSearch({ status: 'error', results: [], message: e.message })
+        }
+      }
+
+      const pickVideo = (r) => {
+        setPlayerError(null)
+        setVideo({ videoId: r.videoId, title: r.title, start, nonce: Date.now(), autoplay: true })
+        if (song) {
+          update(d => {
+            const s = d.songs.find(x => x.id === song.id)
+            if (s) { s.videoId = r.videoId; s.videoTitle = r.title }
+          })
+        }
+        if (IS_FILE) openInWindow(r.videoId, start)
+      }
+
+      const setStart = (value) => {
+        const v = Math.max(0, parseTime(value))
+        if (song) update(d => { const s = d.songs.find(x => x.id === song.id); if (s) s.start = v })
+        else setFreeStart(v)
+      }
+
+      const useCurrentTime = () => {
+        const t = Math.floor(playerRef.current ? playerRef.current.currentTime() : 0)
+        setStart(t)
+        toast(`Início marcado em ${formatTime(t)}`)
+      }
+
+      const togglePlay = () => {
+        if (!video) return
+        if (IS_FILE) { openInWindow(video.videoId, start); return }
+        if (playing) playerRef.current.pause()
+        else playerRef.current.play()
+      }
+      const restart = () => {
+        if (!video) return
+        if (IS_FILE) { openInWindow(video.videoId, start); return }
+        playerRef.current.seek(start)
+        playerRef.current.play()
+      }
+
+      const finishAndNext = () => {
+        update(d => {
+          const idx = d.songs.findIndex(x => x.id === d.currentSongId)
+          if (idx >= 0) d.songs[idx].played = true
+          const order = [...d.songs.slice(idx + 1), ...d.songs.slice(0, Math.max(idx, 0))]
+          const next = order.find(x => !x.played)
+          d.currentSongId = next ? next.id : null
+        })
+      }
+
+      const addFreeToList = () => {
+        const title = query.trim()
+        if (!title) return
+        const s = newSong({ title, videoId: video && video.videoId, videoTitle: video && video.title, start: freeStart })
+        update(d => { d.songs.push(s); d.currentSongId = s.id })
+        toast(`"${title}" entrou na lista`)
+      }
+
+      // Espaço = tocar/pausar (fora de campos de texto)
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.code !== 'Space' || e.repeat) return
+          const tag = (e.target.tagName || '').toLowerCase()
+          if (['input', 'textarea', 'select', 'button', 'summary', 'a'].includes(tag)) return
+          e.preventDefault()
+          togglePlay()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      })
+
+      return (
+        <section className="panel game-deck" aria-label="Música da vez">
+          <div className="deck-now">
+            <div className="eyebrow">{song ? `Música ${songIndex + 1} de ${data.songs.length}` : 'Busca livre'}</div>
+            <h2 className={`now-title ${song ? '' : 'is-free'}`}>{song ? song.title : 'Escolha uma música da fila ou pesquise abaixo'}</h2>
+            {song && <p className="now-artist">{song.artist || 'Artista não informado'}</p>}
+            <div className="deck-actions">
+              {song && (
+                <button className="btn btn-primary" onClick={finishAndNext}>{I.next}Concluir e ir para a próxima</button>
+              )}
+              {song && song.played && (
+                <button className="btn" onClick={() => update(d => { const s = d.songs.find(x => x.id === song.id); if (s) s.played = false })}>Marcar como não tocada</button>
+              )}
+              {song && (
+                <button className="btn btn-ghost" onClick={() => update(d => { d.currentSongId = null })}>Busca livre</button>
+              )}
+              {!song && data.songs.some(s => !s.played) && (
+                <button className="btn btn-primary" onClick={() => update(d => { const n = d.songs.find(x => !x.played); d.currentSongId = n ? n.id : null })}>{I.play}Começar pela primeira da fila</button>
+              )}
+            </div>
+          </div>
+
+          <div className="deck-section">
+            <form className="search-row" onSubmit={(e) => { e.preventDefault(); runSearch() }} role="search">
+              <div className="search-box">
+                {I.search}
+                <label htmlFor="yt-query" className="sr-only">Pesquisar no YouTube</label>
+                <input
+                  id="yt-query"
+                  ref={searchInputRef}
+                  className="input input-lg"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Música e artista, ou cole um link do YouTube"
+                  autoComplete="off"
+                />
+                {lyrics && !looksLikeYouTubeUrl(query) && <span className="lyrics-chip">+ lyrics</span>}
+              </div>
+              <label className="check">
+                <input type="checkbox" checked={lyrics} onChange={(e) => { const v = e.target.checked; update(d => { d.settings.lyrics = v }) }} />
+                Incluir "lyrics"
+              </label>
+              <button type="submit" className="btn btn-primary btn-lg">{I.search}Buscar</button>
+              {search.status === 'done' && search.results.length > 0 && (
+                <button type="button" className="btn btn-ghost" onClick={() => setShowResults(v => !v)}>{showResults ? 'Ocultar resultados' : 'Mostrar resultados'}</button>
+              )}
+            </form>
+            <p className="search-hint">
+              Vídeos de letra ("lyrics") costumam pular introduções e clipes com cenas faladas.
+              {!song && query.trim() && <> <button className="btn btn-ghost btn-sm" onClick={addFreeToList}>{I.plus}Adicionar "{query.trim()}" à lista</button></>}
+            </p>
+            {showResults && (
+              <SearchResults state={search} query={fullQuery} activeVideoId={video && video.videoId} onPick={pickVideo} />
+            )}
+          </div>
+
+          <div className="deck-section player-wrap">
+            {IS_FILE && video && (
+              <div className="notice" style={{ margin: 0 }}>
+                {I.alert}
+                <p>Arquivo aberto direto do computador: o vídeo toca numa janela separada do YouTube. Para tocar aqui dentro, use o endereço hospedado.</p>
+              </div>
+            )}
+            <div className="player-frame">
+              <YouTubePlayer
+                ref={playerRef}
+                video={IS_FILE ? null : video}
+                onStateChange={(s) => setPlaying(s === 1 || s === 3)}
+                onError={(code) => setPlayerError(code)}
+              />
+              {!video && <div className="player-empty">Escolha um vídeo nos resultados da busca para tocar aqui.</div>}
+              {video && IS_FILE && <div className="player-empty">Tocando em janela separada.</div>}
+              {playerError != null && video && (
+                <div className="player-error" role="alert">
+                  <strong>Este vídeo não pode tocar aqui</strong>
+                  <span>{PLAYER_ERRORS[playerError] || `O YouTube devolveu o erro ${playerError}.`}</span>
+                  <button className="btn" onClick={() => openInWindow(video.videoId, start)}>{I.external}Abrir em janela</button>
+                </div>
+              )}
+            </div>
+            <div className="player-meta">
+              <button className="btn btn-primary" onClick={togglePlay} disabled={!video}>
+                {playing ? <>{I.pause}Pausar</> : <>{I.play}Tocar</>}
+              </button>
+              <button className="btn" onClick={restart} disabled={!video} title="Volta para o segundo de início">{I.restart}Do início</button>
+              <span className="start-field">
+                <label htmlFor="start-at">Começar em</label>
+                <input
+                  id="start-at"
+                  className="input num"
+                  key={`${data.currentSongId}-${start}`}
+                  defaultValue={formatTime(start)}
+                  onBlur={(e) => setStart(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                  aria-describedby="start-hint"
+                />
+                <span id="start-hint" className="sr-only">Em segundos ou minutos:segundos, por exemplo 1:05</span>
+              </span>
+              <button className="btn btn-ghost" onClick={useCurrentTime} disabled={!video || IS_FILE}>{I.flag}Marcar tempo atual</button>
+              {video && <span className="video-title" title={video.title}>{video.title}</span>}
+              {video && (
+                <a className="btn btn-ghost btn-icon" href={youtubeWatchUrl(video.videoId, start)} target="_blank" rel="noopener noreferrer" title="Abrir no YouTube" aria-label="Abrir no YouTube">{I.external}</a>
+              )}
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    const Scoreboard = ({ data, update, goTo }) => {
+      const ranked = [...data.teams].sort((a, b) => b.score - a.score)
+      const rankOf = (t) => ranked.findIndex(x => x.score === t.score) + 1
+      const last = data.history[data.history.length - 1]
+      const lastTeam = last && data.teams.find(t => t.id === last.teamId)
+      const names = (t) => t.memberIds.map(id => (data.participants.find(p => p.id === id) || {}).name).filter(Boolean).join(', ')
+
+      const addPoints = (teamId, delta) => update(d => {
+        const t = d.teams.find(x => x.id === teamId)
+        if (!t) return
+        t.score += delta
+        d.history.push({ teamId, delta, songId: d.currentSongId })
+        if (d.history.length > 100) d.history.shift()
+      })
+      const undo = () => update(d => {
+        const h = d.history.pop()
+        const t = h && d.teams.find(x => x.id === h.teamId)
+        if (t) t.score -= h.delta
+      })
+
+      return (
+        <section className="panel game-score" aria-label="Placar">
+          <div className="panel-head"><h3 className="panel-title">Placar</h3></div>
+          {data.teams.length === 0 ? (
+            <div className="empty">
+              <strong>Nenhum time criado</strong>
+              Crie os times para começar a pontuar.
+              <div><button className="btn" onClick={() => goTo('teams')}>Ir para Times</button></div>
+            </div>
+          ) : (
+            <div className="score-list">
+              {data.teams.map(t => {
+                const rank = rankOf(t)
+                return (
+                  <div className="team-score" key={t.id} style={{ '--team': t.color }}>
+                    <div className="team-name">
+                      <span className={`rank ${rank === 1 && t.score > 0 ? 'first' : ''}`}>{rank}º lugar</span>
+                      <strong>{t.name}</strong>
+                      <span>{names(t) || 'Sem participantes'}</span>
+                    </div>
+                    <div className="team-points" aria-live="polite">
+                      <b>{t.score}</b>
+                      <small>pontos</small>
+                    </div>
+                    <div className="score-btns" role="group" aria-label={`Pontuar ${t.name}`}>
+                      {SCORE_STEPS.map(v => (
+                        <button key={v} className={`score-btn ${v < 0 ? 'neg' : 'pos'}`} onClick={() => addPoints(t.id, v)} aria-label={`${v > 0 ? 'Somar' : 'Tirar'} ${Math.abs(v)} pontos de ${t.name}`}>
+                          {v > 0 ? `+${v}` : `−${Math.abs(v)}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {data.teams.length > 0 && (
+            <div className="score-foot">
+              <span>{last && lastTeam ? `Último: ${last.delta > 0 ? '+' : '−'}${Math.abs(last.delta)} para ${lastTeam.name}` : 'Nenhum ponto ainda'}</span>
+              <button className="btn btn-sm" onClick={undo} disabled={!last}>{I.undo}Desfazer</button>
+            </div>
+          )}
+        </section>
+      )
+    }
+
+    const GameTab = ({ data, update, goTo }) => (
+      <>
+        {IS_FILE && (
+          <div className="notice">
+            {I.alert}
+            <p><strong>Você abriu o arquivo direto do computador.</strong> O YouTube não deixa tocar vídeos dentro de páginas abertas assim, então eles vão abrir numa janela separada. Para tocar aqui dentro, abra o site pelo endereço hospedado (veja Ajustes).</p>
+          </div>
+        )}
+        <div className="game">
+          <QueuePanel songs={data.songs} currentSongId={data.currentSongId} goTo={goTo} onSelect={(id) => update(d => { d.currentSongId = id })} />
+          <Deck data={data} update={update} goTo={goTo} />
+          <Scoreboard data={data} update={update} goTo={goTo} />
+        </div>
+      </>
+    )
+
+    // ============================================================
+    // Aba: Músicas
+    // ============================================================
+    const SongsTab = ({ data, update, goTo }) => {
+      const { ask, toast } = useUi()
+      const [title, setTitle] = useState('')
+      const [artist, setArtist] = useState('')
+      const [filter, setFilter] = useState('')
+      const titleRef = useRef(null)
+
+      const add = (e) => {
+        e.preventDefault()
+        const t = title.trim()
+        if (!t) { titleRef.current.focus(); return }
+        update(d => { d.songs.push(newSong({ title: t, artist: artist.trim() })) })
+        setTitle(''); setArtist('')
+        titleRef.current.focus()
+      }
+
+      const importFile = async (file) => {
+        try {
+          const parsed = parseSongRows(await readTableFile(file))
+          if (!parsed.length) { toast('Nenhuma música encontrada no arquivo. A primeira coluna precisa ter o nome da música.', 'error'); return }
+          const mode = await askImportMode(ask, 'música', 'músicas', parsed.length, data.songs.length)
+          if (!mode) return
+          update(d => {
+            const incoming = parsed.map(newSong)
+            if (mode === 'replace') { d.songs = incoming; d.currentSongId = null }
+            else d.songs.push(...incoming)
+          })
+          toast(`${plural(parsed.length, 'música importada', 'músicas importadas')} de ${file.name}`)
+        } catch (err) {
+          toast(`Não foi possível ler ${file.name}: ${err.message}`, 'error')
+        }
+      }
+
+      const exportSongs = (format) => {
+        try {
+          const rows = [['Música', 'Artista', 'Link do YouTube', 'Início (s)', 'Tocada']]
+          data.songs.forEach(s => rows.push([s.title, s.artist, s.videoId ? youtubeWatchUrl(s.videoId) : '', s.start || '', s.played ? 'sim' : '']))
+          exportTable(rows, `musicas-${today()}`, format, 'Músicas')
+        } catch (err) { toast(err.message, 'error') }
+      }
+
+      const remove = async (s) => {
+        const ok = await ask({ title: 'Excluir música?', message: `"${s.title}" sai da lista.`, actions: [{ label: 'Cancelar', value: null }, { label: 'Excluir', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.songs = d.songs.filter(x => x.id !== s.id); if (d.currentSongId === s.id) d.currentSongId = null })
+      }
+
+      const removeAll = async () => {
+        const ok = await ask({ title: 'Apagar todas as músicas?', message: `As ${data.songs.length} músicas e os vídeos escolhidos para elas serão apagados. Exporte a lista antes se quiser guardar.`, actions: [{ label: 'Cancelar', value: null }, { label: 'Apagar todas', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.songs = []; d.currentSongId = null })
+      }
+
+      const edit = (id, field, value) => update(d => { const s = d.songs.find(x => x.id === id); if (s) s[field] = value })
+
+      const f = norm(filter)
+      const rows = data.songs.map((s, i) => ({ s, i })).filter(({ s }) => !f || norm(s.title).includes(f) || norm(s.artist).includes(f))
+      const playedCount = data.songs.filter(s => s.played).length
+      const withVideo = data.songs.filter(s => s.videoId).length
+
+      return (
+        <>
+          <div className="page-head">
+            <div>
+              <h2>Músicas</h2>
+              <p>A planilha precisa ter o nome da música na primeira coluna (ou numa coluna chamada "Música"). Artista, link do YouTube e início são opcionais.</p>
+            </div>
+            <div className="toolbar">
+              <FileButton accept=".xlsx,.xls,.csv,.txt" label="Importar" onFile={importFile} />
+              <ExportMenu onExport={exportSongs} />
+              <Menu label="Mais" className="btn">
+                {(close) => (
+                  <>
+                    <button className="menu-item" disabled={!data.songs.length} onClick={() => { close(); update(d => { d.songs = shuffle(d.songs) }); toast('Ordem da lista embaralhada') }}>{I.shuffle}Embaralhar a ordem</button>
+                    <button className="menu-item" disabled={!playedCount} onClick={() => { close(); update(d => { d.songs.forEach(s => { s.played = false }) }) }}>{I.restart}Desmarcar todas como tocadas</button>
+                    <hr />
+                    <button className="menu-item btn-danger" disabled={!data.songs.length} onClick={() => { close(); removeAll() }}>{I.trash}Apagar todas</button>
+                  </>
+                )}
+              </Menu>
+            </div>
+          </div>
+
+          <section className="panel">
+            <form className="add-row" onSubmit={add}>
+              <div className="field">
+                <label htmlFor="song-title">Música <span className="required">*</span></label>
+                <input id="song-title" ref={titleRef} className="input" value={title} onChange={(e) => setTitle(e.target.value)} required autoComplete="off" />
+              </div>
+              <div className="field">
+                <label htmlFor="song-artist">Artista (opcional)</label>
+                <input id="song-artist" className="input" value={artist} onChange={(e) => setArtist(e.target.value)} autoComplete="off" />
+              </div>
+              <button type="submit" className="btn btn-primary">{I.plus}Adicionar música</button>
+            </form>
+
+            {data.songs.length === 0 ? (
+              <div className="empty">
+                <strong>A lista está vazia</strong>
+                Adicione músicas acima ou importe uma planilha (.xlsx ou .csv).
+              </div>
+            ) : (
+              <>
+                <div className="list-filter">
+                  <label htmlFor="song-filter" className="sr-only">Filtrar músicas</label>
+                  <input id="song-filter" className="input" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filtrar por música ou artista" />
+                  <span className="meta num">{plural(data.songs.length, 'música', 'músicas')} · {playedCount} tocadas · {withVideo} com vídeo</span>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th style={{ textAlign: 'right' }}>#</th><th>Música</th><th>Artista</th><th>Vídeo</th><th>Tocada</th><th><span className="sr-only">Ações</span></th></tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(({ s, i }) => (
+                        <tr key={s.id}>
+                          <td className="idx">{i + 1}</td>
+                          <td>
+                            <input
+                              className="cell-input"
+                              defaultValue={s.title}
+                              aria-label="Nome da música"
+                              onBlur={(e) => { const v = e.target.value.trim(); if (v) edit(s.id, 'title', v); else e.target.value = s.title }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="cell-input"
+                              defaultValue={s.artist}
+                              aria-label="Artista"
+                              placeholder="—"
+                              onBlur={(e) => edit(s.id, 'artist', e.target.value.trim())}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                            />
+                          </td>
+                          <td className="video">
+                            {s.videoId ? (
+                              <span className="video-tag" title={s.videoTitle || s.videoId}>
+                                {I.video}<span>{s.videoTitle || 'Vídeo escolhido'}{s.start ? ` · ${formatTime(s.start)}` : ''}</span>
+                                <button className="btn btn-ghost btn-sm btn-icon" title="Esquecer vídeo" aria-label="Esquecer vídeo escolhido" onClick={() => update(d => { const x = d.songs.find(y => y.id === s.id); if (x) { x.videoId = null; x.videoTitle = '' } })}>{I.x}</button>
+                              </span>
+                            ) : <span className="dim">ainda não escolhido</span>}
+                          </td>
+                          <td>
+                            <label className="check">
+                              <input type="checkbox" checked={s.played} onChange={(e) => edit(s.id, 'played', e.target.checked)} />
+                              <span className="sr-only">Já tocou</span>
+                            </label>
+                          </td>
+                          <td className="actions">
+                            <button className="btn btn-sm" onClick={() => { update(d => { d.currentSongId = s.id }); goTo('game') }}>{I.play}Tocar</button>
+                            {' '}
+                            <button className="btn btn-sm btn-ghost btn-icon btn-danger" onClick={() => remove(s)} title="Excluir" aria-label={`Excluir ${s.title}`}>{I.trash}</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {rows.length === 0 && <div className="empty">Nenhuma música combina com "{filter}".</div>}
+                </div>
+              </>
+            )}
+          </section>
+        </>
+      )
+    }
+
+    // ============================================================
+    // Aba: Participantes
+    // ============================================================
+    const addParticipantsByName = (d, names) => {
+      const ids = []
+      names.forEach(raw => {
+        const name = String(raw).trim()
+        if (!name) return
+        let p = d.participants.find(x => norm(x.name) === norm(name))
+        if (!p) { p = { id: uid(), name }; d.participants.push(p) }
+        ids.push(p.id)
+      })
+      return ids
+    }
+
+    const ParticipantsTab = ({ data, update }) => {
+      const { ask, toast } = useUi()
+      const [name, setName] = useState('')
+      const nameRef = useRef(null)
+      const teamOf = (pid) => data.teams.find(t => t.memberIds.includes(pid))
+
+      const add = (e) => {
+        e.preventDefault()
+        const n = name.trim()
+        if (!n) { nameRef.current.focus(); return }
+        if (data.participants.some(p => norm(p.name) === norm(n))) { toast(`${n} já está na lista`, 'error'); return }
+        update(d => { addParticipantsByName(d, [n]) })
+        setName('')
+        nameRef.current.focus()
+      }
+
+      const importFile = async (file) => {
+        try {
+          const names = parseNameRows(await readTableFile(file))
+          if (!names.length) { toast('Nenhum nome encontrado no arquivo.', 'error'); return }
+          const mode = await askImportMode(ask, 'participante', 'participantes', names.length, data.participants.length)
+          if (!mode) return
+          update(d => {
+            if (mode === 'replace') { d.participants = []; d.teams.forEach(t => { t.memberIds = [] }) }
+            addParticipantsByName(d, names)
+          })
+          toast(`${plural(names.length, 'participante importado', 'participantes importados')}`)
+        } catch (err) {
+          toast(`Não foi possível ler ${file.name}: ${err.message}`, 'error')
+        }
+      }
+
+      const exportList = (format) => {
+        try {
+          const rows = [['Participante']]
+          data.participants.forEach(p => rows.push([p.name]))
+          exportTable(rows, `participantes-${today()}`, format, 'Participantes')
+        } catch (err) { toast(err.message, 'error') }
+      }
+
+      const remove = async (p) => {
+        const t = teamOf(p.id)
+        const ok = await ask({ title: `Excluir ${p.name}?`, message: t ? `${p.name} também sai do time ${t.name}.` : '', actions: [{ label: 'Cancelar', value: null }, { label: 'Excluir', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.participants = d.participants.filter(x => x.id !== p.id); d.teams.forEach(tm => { tm.memberIds = tm.memberIds.filter(id => id !== p.id) }) })
+      }
+
+      const removeAll = async () => {
+        const ok = await ask({ title: 'Apagar todos os participantes?', message: 'Os times continuam existindo, mas ficam sem membros.', actions: [{ label: 'Cancelar', value: null }, { label: 'Apagar todos', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.participants = []; d.teams.forEach(t => { t.memberIds = [] }) })
+      }
+
+      const assign = (pid, teamId) => update(d => {
+        d.teams.forEach(t => { t.memberIds = t.memberIds.filter(id => id !== pid) })
+        const t = d.teams.find(x => x.id === teamId)
+        if (t) t.memberIds.push(pid)
+      })
+
+      const rename = (pid, value) => {
+        const v = value.trim()
+        if (!v) return false
+        update(d => { const p = d.participants.find(x => x.id === pid); if (p) p.name = v })
+        return true
+      }
+
+      const withoutTeam = data.participants.filter(p => !teamOf(p.id)).length
+
+      return (
+        <>
+          <div className="page-head">
+            <div>
+              <h2>Participantes</h2>
+              <p>Todas as pessoas que vão jogar. Na planilha, um nome por linha na primeira coluna (ou numa coluna chamada "Participante").</p>
+            </div>
+            <div className="toolbar">
+              <FileButton accept=".xlsx,.xls,.csv,.txt" label="Importar" onFile={importFile} />
+              <ExportMenu onExport={exportList} />
+              <button className="btn btn-ghost btn-danger" onClick={removeAll} disabled={!data.participants.length}>{I.trash}Apagar todos</button>
+            </div>
+          </div>
+          <section className="panel">
+            <form className="add-row" onSubmit={add}>
+              <div className="field">
+                <label htmlFor="p-name">Nome <span className="required">*</span></label>
+                <input id="p-name" ref={nameRef} className="input" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" required />
+              </div>
+              <button type="submit" className="btn btn-primary">{I.plus}Adicionar participante</button>
+            </form>
+            {data.participants.length === 0 ? (
+              <div className="empty"><strong>Ninguém cadastrado ainda</strong>Adicione nomes acima ou importe uma planilha.</div>
+            ) : (
+              <>
+                <div className="list-filter">
+                  <span className="meta num" style={{ marginLeft: 0 }}>{plural(data.participants.length, 'participante', 'participantes')} · {withoutTeam} sem time</span>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th style={{ textAlign: 'right' }}>#</th><th>Nome</th><th>Time</th><th><span className="sr-only">Ações</span></th></tr></thead>
+                    <tbody>
+                      {data.participants.map((p, i) => {
+                        const t = teamOf(p.id)
+                        return (
+                          <tr key={p.id}>
+                            <td className="idx">{i + 1}</td>
+                            <td>
+                              <input className="cell-input" defaultValue={p.name} aria-label="Nome"
+                                onBlur={(e) => { if (!rename(p.id, e.target.value)) e.target.value = p.name }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+                            </td>
+                            <td>
+                              <select className="select" value={t ? t.id : ''} onChange={(e) => assign(p.id, e.target.value)} aria-label={`Time de ${p.name}`} disabled={!data.teams.length}>
+                                <option value="">{data.teams.length ? 'Sem time' : 'Crie times primeiro'}</option>
+                                {data.teams.map(tm => <option key={tm.id} value={tm.id}>{tm.name}</option>)}
+                              </select>
+                            </td>
+                            <td className="actions">
+                              <button className="btn btn-sm btn-ghost btn-icon btn-danger" onClick={() => remove(p)} title="Excluir" aria-label={`Excluir ${p.name}`}>{I.trash}</button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        </>
+      )
+    }
+
+    // ============================================================
+    // Aba: Times
+    // ============================================================
+    const TeamCard = ({ team, data, update, onRemove }) => {
+      const [member, setMember] = useState('')
+      const listId = `members-${team.id}`
+      const free = data.participants.filter(p => !data.teams.some(t => t.memberIds.includes(p.id)))
+      const members = team.memberIds.map(id => data.participants.find(p => p.id === id)).filter(Boolean)
+
+      const addMember = (e) => {
+        e.preventDefault()
+        const n = member.trim()
+        if (!n) return
+        update(d => {
+          const [pid] = addParticipantsByName(d, [n])
+          d.teams.forEach(t => { t.memberIds = t.memberIds.filter(id => id !== pid) })
+          const t = d.teams.find(x => x.id === team.id)
+          if (t) t.memberIds.push(pid)
+        })
+        setMember('')
+      }
+
+      const cycleColor = () => update(d => {
+        const t = d.teams.find(x => x.id === team.id)
+        if (t) t.color = TEAM_COLORS[(TEAM_COLORS.indexOf(t.color) + 1) % TEAM_COLORS.length]
+      })
+
+      return (
+        <article className="team-card" style={{ '--team': team.color }}>
+          <div className="team-card-head">
+            <button className="swatch" onClick={cycleColor} title="Trocar cor" aria-label={`Trocar cor de ${team.name}`} />
+            <input className="cell-input" defaultValue={team.name} key={team.name} aria-label="Nome do time"
+              onBlur={(e) => { const v = e.target.value.trim(); if (v) update(d => { const t = d.teams.find(x => x.id === team.id); if (t) t.name = v }); else e.target.value = team.name }}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+            <button className="btn btn-ghost btn-icon btn-danger" onClick={onRemove} title="Remover time" aria-label={`Remover ${team.name}`}>{I.trash}</button>
+          </div>
+          <div className="team-card-body">
+            <label className="score-edit">
+              Pontuação
+              <input className="input" type="number" value={team.score}
+                onChange={(e) => { const v = parseInt(e.target.value, 10); update(d => { const t = d.teams.find(x => x.id === team.id); if (t) t.score = Number.isFinite(v) ? v : 0 }) }} />
+            </label>
+            <div>
+              <div className="label" style={{ marginBottom: 8 }}>{plural(members.length, 'participante', 'participantes')}</div>
+              {members.length > 0 ? (
+                <div className="chips">
+                  {members.map(p => (
+                    <span className="chip" key={p.id}>
+                      {p.name}
+                      <button onClick={() => update(d => { const t = d.teams.find(x => x.id === team.id); if (t) t.memberIds = t.memberIds.filter(id => id !== p.id) })} aria-label={`Tirar ${p.name} do time`} title="Tirar do time">{I.x}</button>
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="hint">Nenhum participante ainda.</p>}
+            </div>
+            <form className="member-add" onSubmit={addMember}>
+              <label htmlFor={`add-${team.id}`} className="sr-only">Adicionar participante ao {team.name}</label>
+              <input id={`add-${team.id}`} className="input" list={listId} value={member} onChange={(e) => setMember(e.target.value)} placeholder={free.length ? 'Escolha ou digite um nome' : 'Digite um nome'} autoComplete="off" />
+              <datalist id={listId}>{free.map(p => <option key={p.id} value={p.name} />)}</datalist>
+              <button type="submit" className="btn">{I.plus}Adicionar</button>
+            </form>
+          </div>
+        </article>
+      )
+    }
+
+    const TeamsTab = ({ data, update }) => {
+      const { ask, toast } = useUi()
+      const [withScore, setWithScore] = useState(true)
+
+      const addTeam = () => update(d => {
+        let n = d.teams.length + 1
+        while (d.teams.some(t => norm(t.name) === norm(`Time ${n}`))) n++
+        d.teams.push({ id: uid(), name: `Time ${n}`, color: nextTeamColor(d.teams), memberIds: [], score: 0 })
+      })
+
+      const removeTeam = async (t) => {
+        const ok = await ask({ title: `Remover ${t.name}?`, message: 'Os participantes continuam cadastrados, só ficam sem time. A pontuação do time é perdida.', actions: [{ label: 'Cancelar', value: null }, { label: 'Remover time', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.teams = d.teams.filter(x => x.id !== t.id); d.history = d.history.filter(h => h.teamId !== t.id) })
+      }
+
+      const exportTeams = (format) => {
+        try {
+          const header = withScore ? ['Time', 'Participante', 'Pontuação'] : ['Time', 'Participante']
+          const rows = [header]
+          data.teams.forEach(t => {
+            const names = t.memberIds.map(id => (data.participants.find(p => p.id === id) || {}).name).filter(Boolean)
+            ;(names.length ? names : ['']).forEach(n => rows.push(withScore ? [t.name, n, t.score] : [t.name, n]))
+          })
+          exportTable(rows, `times-${withScore ? 'com-pontos-' : ''}${today()}`, format, 'Times')
+        } catch (err) { toast(err.message, 'error') }
+      }
+
+      const importFile = async (file) => {
+        try {
+          const teams = parseTeamRows(await readTableFile(file))
+          if (!teams.length) { toast('Nenhum time encontrado. Use as colunas "Time" e "Participante".', 'error'); return }
+          if (data.teams.length) {
+            const ok = await ask({ title: `Importar ${plural(teams.length, 'time', 'times')}?`, message: 'Os times atuais e o placar serão substituídos. Participantes novos entram na lista de participantes.', actions: [{ label: 'Cancelar', value: null }, { label: 'Substituir times', value: true, variant: 'primary' }] })
+            if (!ok) return
+          }
+          update(d => {
+            d.history = []
+            d.teams = []
+            teams.forEach(t => {
+              const memberIds = addParticipantsByName(d, t.members).filter(id => !d.teams.some(x => x.memberIds.includes(id)))
+              d.teams.push({ id: uid(), name: t.name, color: nextTeamColor(d.teams), memberIds, score: t.score || 0 })
+            })
+          })
+          toast(`${plural(teams.length, 'time importado', 'times importados')}`)
+        } catch (err) {
+          toast(`Não foi possível ler ${file.name}: ${err.message}`, 'error')
+        }
+      }
+
+      const drawTeams = async () => {
+        const ok = await ask({ title: 'Sortear os times?', message: `Os ${data.participants.length} participantes serão distribuídos ao acaso entre os ${data.teams.length} times. A formação atual será desfeita; a pontuação continua.`, actions: [{ label: 'Cancelar', value: null }, { label: 'Sortear', value: true, variant: 'primary' }] })
+        if (!ok) return
+        update(d => {
+          d.teams.forEach(t => { t.memberIds = [] })
+          shuffle(d.participants).forEach((p, i) => d.teams[i % d.teams.length].memberIds.push(p.id))
+        })
+      }
+
+      const resetScores = async () => {
+        const ok = await ask({ title: 'Zerar o placar?', message: 'Todos os times voltam a 0 pontos.', actions: [{ label: 'Cancelar', value: null }, { label: 'Zerar placar', value: true, variant: 'danger' }] })
+        if (ok) update(d => { d.teams.forEach(t => { t.score = 0 }); d.history = [] })
+      }
+
+      return (
+        <>
+          <div className="page-head">
+            <div>
+              <h2>Times</h2>
+              <p>Clique na bolinha para trocar a cor do time. Na planilha, use as colunas "Time" e "Participante" (uma linha por pessoa) e, se quiser, "Pontuação".</p>
+            </div>
+            <div className="toolbar">
+              <button className="btn btn-primary" onClick={addTeam}>{I.plus}Novo time</button>
+              <FileButton accept=".xlsx,.xls,.csv,.txt" label="Importar" onFile={importFile} />
+              <ExportMenu
+                onExport={exportTeams}
+                extra={<label className="check"><input type="checkbox" checked={withScore} onChange={(e) => setWithScore(e.target.checked)} />Incluir pontuação</label>}
+              />
+              <Menu label="Mais">
+                {(close) => (
+                  <>
+                    <button className="menu-item" disabled={!data.teams.length || !data.participants.length} onClick={() => { close(); drawTeams() }}>{I.shuffle}Sortear participantes nos times</button>
+                    <button className="menu-item" disabled={!data.teams.length} onClick={() => { close(); resetScores() }}>{I.restart}Zerar placar</button>
+                  </>
+                )}
+              </Menu>
+            </div>
+          </div>
+          {data.teams.length === 0 ? (
+            <section className="panel">
+              <div className="empty">
+                <strong>Nenhum time criado</strong>
+                Crie os times e adicione os participantes de cada um.
+                <div><button className="btn btn-primary" onClick={addTeam}>{I.plus}Criar o primeiro time</button></div>
+              </div>
+            </section>
+          ) : (
+            <div className="teams-grid">
+              {data.teams.map(t => <TeamCard key={t.id} team={t} data={data} update={update} onRemove={() => removeTeam(t)} />)}
+            </div>
+          )}
+        </>
+      )
+    }
+
+    // ============================================================
+    // Aba: Ajustes
+    // ============================================================
+    const SettingsTab = ({ data, update, replaceData }) => {
+      const { ask, toast } = useUi()
+      const [key, setKey] = useState(data.settings.apiKey)
+      const [show, setShow] = useState(false)
+      const [test, setTest] = useState(null)
+
+      const saveKey = async (e) => {
+        e.preventDefault()
+        const k = key.trim()
+        update(d => { d.settings.apiKey = k })
+        if (!k) { setTest(null); toast('Chave removida'); return }
+        setTest({ status: 'loading' })
+        try {
+          await testApiKey(k)
+          setTest({ status: 'ok' })
+        } catch (err) {
+          setTest({ status: 'error', message: err.message })
+        }
+      }
+
+      const exportBackup = () => {
+        const { settings, ...rest } = data
+        const payload = { app: 'desafio-musical', version: 2, exportedAt: new Date().toISOString(), ...rest, settings: { lyrics: settings.lyrics } }
+        downloadFile(JSON.stringify(payload, null, 2), `desafio-musical-backup-${today()}.json`, 'application/json')
+      }
+
+      const importBackup = async (file) => {
+        try {
+          const json = JSON.parse(await file.text())
+          if (!json || !Array.isArray(json.songs) || !Array.isArray(json.teams)) throw new Error('não parece um backup do Desafio Musical')
+          const ok = await ask({ title: 'Restaurar backup?', message: `Músicas, participantes, times e placar atuais serão substituídos pelos do arquivo ${file.name}.`, actions: [{ label: 'Cancelar', value: null }, { label: 'Restaurar', value: true, variant: 'danger' }] })
+          if (!ok) return
+          replaceData({
+            ...emptyData(),
+            songs: json.songs, participants: json.participants || [], teams: json.teams, history: json.history || [], currentSongId: json.currentSongId || null,
+            settings: { apiKey: data.settings.apiKey, lyrics: !!(json.settings && json.settings.lyrics) }
+          })
+          toast('Backup restaurado')
+        } catch (err) {
+          toast(`Não foi possível restaurar: ${err.message}`, 'error')
+        }
+      }
+
+      const wipe = async () => {
+        const ok = await ask({ title: 'Apagar todos os dados?', message: 'Músicas, participantes, times e placar deste navegador serão apagados. A chave da API continua salva.', actions: [{ label: 'Cancelar', value: null }, { label: 'Apagar tudo', value: true, variant: 'danger' }] })
+        if (ok) replaceData({ ...emptyData(), settings: data.settings })
+      }
+
+      return (
+        <>
+          <div className="page-head">
+            <div>
+              <h2>Ajustes</h2>
+              <p>Tudo fica salvo neste navegador. Para levar o jogo para outro computador, exporte um backup.</p>
+            </div>
+          </div>
+          <div className="settings-grid">
+            <section className="panel">
+              <div className="panel-head"><h3 className="panel-title">Busca no YouTube</h3></div>
+              <div className="panel-body stack">
+                <form className="stack" onSubmit={saveKey}>
+                  <div className="field">
+                    <label htmlFor="api-key">Chave da YouTube Data API v3</label>
+                    <div className="key-row">
+                      <input id="api-key" className="input" type={show ? 'text' : 'password'} value={key} onChange={(e) => { setKey(e.target.value); setTest(null) }} autoComplete="off" spellCheck="false" />
+                      <button type="button" className="btn btn-ghost" onClick={() => setShow(v => !v)}>{show ? 'Ocultar' : 'Mostrar'}</button>
+                      <button type="submit" className="btn btn-primary">Salvar e testar</button>
+                    </div>
+                  </div>
+                  {test && test.status === 'loading' && <span className="hint">Testando a chave…</span>}
+                  {test && test.status === 'ok' && <span className="status-ok">Chave funcionando. A busca dentro do site está liberada.</span>}
+                  {test && test.status === 'error' && <span className="status-err">{test.message}</span>}
+                  <p className="hint">A chave fica guardada só neste navegador e não vai junto no backup. Cada busca gasta cerca de 1% da cota diária grátis, que dá umas 100 buscas por dia. O site lembra das buscas já feitas e não gasta cota de novo com elas.</p>
+                </form>
+                <div>
+                  <div className="label" style={{ marginBottom: 8 }}>Como conseguir uma chave (grátis, uns 5 minutos)</div>
+                  <ol className="steps">
+                    <li>Entre em <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener noreferrer">console.cloud.google.com</a> com uma conta Google e <strong>crie um projeto</strong> (qualquer nome).</li>
+                    <li>Abra a página da <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">YouTube Data API v3</a> e clique em <strong>Ativar</strong>.</li>
+                    <li>Vá em <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Credenciais</a> › <strong>Criar credenciais</strong> › <strong>Chave de API</strong>.</li>
+                    <li>Recomendado: em <strong>Restrições do aplicativo</strong> escolha <strong>Sites</strong> e coloque o endereço onde o jogo está hospedado (ex.: <code>https://seu-usuario.github.io/*</code>). Em <strong>Restrições de API</strong>, deixe só a YouTube Data API v3. Com a restrição de sites, a chave não funciona no arquivo aberto direto do computador.</li>
+                    <li>Copie a chave, cole no campo acima e clique em <strong>Salvar e testar</strong>.</li>
+                  </ol>
+                </div>
+              </div>
+            </section>
+            <div className="stack">
+              <section className="panel">
+                <div className="panel-head"><h3 className="panel-title">Backup completo</h3></div>
+                <div className="panel-body stack">
+                  <p className="hint" style={{ fontSize: 'var(--t-sm)' }}>Um arquivo .json com músicas (e vídeos escolhidos), participantes, times e placar.</p>
+                  <div className="toolbar" style={{ marginLeft: 0 }}>
+                    <button className="btn" onClick={exportBackup}>{I.download}Exportar backup</button>
+                    <FileButton accept=".json,application/json" label="Restaurar backup" onFile={importBackup} />
+                  </div>
+                </div>
+              </section>
+              <section className="panel">
+                <div className="panel-head"><h3 className="panel-title">Começar do zero</h3></div>
+                <div className="panel-body">
+                  <button className="btn btn-danger" onClick={wipe}>{I.trash}Apagar todos os dados</button>
+                </div>
+              </section>
+            </div>
+          </div>
+        </>
+      )
+    }
+
+    // ============================================================
+    // App
+    // ============================================================
+    const TABS = [
+      { id: 'game', label: 'Jogo' },
+      { id: 'songs', label: 'Músicas', count: d => d.songs.length },
+      { id: 'participants', label: 'Participantes', count: d => d.participants.length },
+      { id: 'teams', label: 'Times', count: d => d.teams.length },
+      { id: 'settings', label: 'Ajustes' }
+    ]
+
+    const App = () => {
+      const [data, setData] = useState(loadData)
+      const [tab, setTab] = useState(() => {
+        try { return sessionStorage.getItem('desafioMusical.tab') || 'game' } catch (e) { return 'game' }
+      })
+      const [dialog, setDialog] = useState(null)
+      const [toasts, setToasts] = useState([])
+
+      const update = useCallback((fn) => setData(d => { const n = structuredClone(d); fn(n); return n }), [])
+
+      useEffect(() => {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch (e) { /* armazenamento indisponível */ }
+      }, [data])
+      useEffect(() => {
+        try { sessionStorage.setItem('desafioMusical.tab', tab) } catch (e) {}
+      }, [tab])
+
+      const ask = useCallback((opts) => new Promise(resolve => setDialog({ ...opts, resolve })), [])
+      const closeDialog = (value) => { if (dialog) dialog.resolve(value); setDialog(null) }
+      const toast = useCallback((message, kind = 'info') => {
+        const id = uid()
+        setToasts(t => [...t, { id, message, kind }])
+        setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), kind === 'error' ? 6000 : 3000)
+      }, [])
+      const ui = useMemo(() => ({ ask, toast }), [ask, toast])
+
+      const played = data.songs.filter(s => s.played).length
+      const props = { data, update, goTo: setTab }
+
+      return (
+        <UiContext.Provider value={ui}>
+          <header className="topbar">
+            <h1 className="brand">Desafio <span>Musical</span></h1>
+            <nav className="tabs" role="tablist" aria-label="Seções">
+              {TABS.map(t => (
+                <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
+                  {t.label}
+                  {t.count && <span className="count">{t.count(data)}</span>}
+                </button>
+              ))}
+            </nav>
+            {data.songs.length > 0 && (
+              <div className="topbar-meta num"><strong>{played}</strong> de {data.songs.length} músicas tocadas</div>
+            )}
+          </header>
+          <main>
+            {tab === 'game' && <GameTab {...props} />}
+            {tab === 'songs' && <SongsTab {...props} />}
+            {tab === 'participants' && <ParticipantsTab {...props} />}
+            {tab === 'teams' && <TeamsTab {...props} />}
+            {tab === 'settings' && <SettingsTab {...props} replaceData={setData} />}
+          </main>
+          <Dialog dialog={dialog} onClose={closeDialog} />
+          <div className="toasts" role="status" aria-live="polite">
+            {toasts.map(t => <div key={t.id} className={`toast ${t.kind === 'error' ? 'error' : ''}`}>{t.message}</div>)}
+          </div>
+        </UiContext.Provider>
+      )
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+  </script>
+</body>
+</html>
