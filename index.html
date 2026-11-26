@@ -1798,12 +1798,35 @@
       }
 
       const drawTeams = async () => {
-        const ok = await ask({ title: 'Sortear os times?', message: `Os ${data.participants.length} participantes serão distribuídos ao acaso entre os ${data.teams.length} times. A formação atual será desfeita; a pontuação continua.`, actions: [{ label: 'Cancelar', value: null }, { label: 'Sortear', value: true, variant: 'primary' }] })
-        if (!ok) return
+        const total = data.participants.length
+        const free = data.participants.filter(p => !data.teams.some(t => t.memberIds.includes(p.id))).length
+        const placed = total - free
+        const actions = [{ label: 'Cancelar', value: null }, { label: 'Sortear todos', value: 'all', variant: free ? undefined : 'primary' }]
+        if (free && placed) actions.push({ label: `Sortear só os sem time (${free})`, value: 'free', variant: 'primary' })
+        const message = placed === 0
+          ? `Os ${plural(total, 'participante', 'participantes')} serão distribuídos ao acaso entre os ${data.teams.length} times. A pontuação continua.`
+          : free === 0
+            ? `Todos já estão em algum time. "Sortear todos" desfaz a formação atual e distribui os ${total} participantes de novo. A pontuação continua.`
+            : `${plural(placed, 'participante já está', 'participantes já estão')} em times e ${plural(free, 'está', 'estão')} sem time.\n\nSortear todos: desfaz a formação atual e distribui todo mundo de novo.\nSortear só os sem time: mantém quem já está em time e distribui os outros, completando primeiro os times menores.\n\nA pontuação continua nos dois casos.`
+        const mode = await ask({ title: 'Sortear os times', message, actions })
+        if (!mode) return
         update(d => {
-          d.teams.forEach(t => { t.memberIds = [] })
-          shuffle(d.participants).forEach((p, i) => d.teams[i % d.teams.length].memberIds.push(p.id))
+          const assigned = new Set(d.teams.flatMap(t => t.memberIds))
+          let pool
+          if (mode === 'all') {
+            d.teams.forEach(t => { t.memberIds = [] })
+            pool = d.participants
+          } else {
+            pool = d.participants.filter(p => !assigned.has(p.id))
+          }
+          // Cada sorteado vai para o time com menos gente (empate decidido ao acaso)
+          shuffle(pool).forEach(p => {
+            const min = Math.min(...d.teams.map(t => t.memberIds.length))
+            const smallest = shuffle(d.teams.filter(t => t.memberIds.length === min))[0]
+            smallest.memberIds.push(p.id)
+          })
         })
+        toast(mode === 'all' ? 'Todos os participantes foram sorteados' : `${plural(free, 'participante sorteado', 'participantes sorteados')}`)
       }
 
       const resetScores = async () => {
